@@ -1,13 +1,11 @@
 import {
   ASTAR_SS58_FORMAT,
   SUBSTRATE_SS58_FORMAT,
-  buildEvmAddress,
   getEvmGasCost,
   getShortenAddress,
   isValidAddressPolkadotAddress,
   isValidEvmAddress,
   sampleEvmWalletAddress,
-  toSS58Address,
 } from '@astar-network/astar-sdk-core';
 import { $api, $web3 } from 'boot/api';
 import { ethers } from 'ethers';
@@ -21,7 +19,7 @@ import { Path } from 'src/router';
 import { useStore } from 'src/store';
 import { container } from 'src/v2/common';
 import { Asset } from 'src/v2/models';
-import { IAssetsService } from 'src/v2/services';
+import { IAccountUnificationService, IAssetsService } from 'src/v2/services';
 import { Symbols } from 'src/v2/symbols';
 import { Ref, computed, ref, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -37,7 +35,7 @@ export function useTokenTransfer(selectedToken: Ref<Asset>) {
 
   const store = useStore();
   const { t } = useI18n();
-  const { currentAccount } = useAccount();
+  const { currentAccount, isLockdropAccount } = useAccount();
   const { accountData } = useBalance(currentAccount);
 
   const transferableBalance = computed<number>(() => {
@@ -46,19 +44,11 @@ export function useTokenTransfer(selectedToken: Ref<Asset>) {
       : '0';
     return Number(balance);
   });
-  const {
-    evmGasPrice,
-    selectedGas,
-    setSelectedGas,
-    evmGasCost,
-    selectedTip,
-    nativeTipPrice,
-    setSelectedTip,
-  } = useGasPrice();
+  const { selectedTip, nativeTipPrice, setSelectedTip, isEnableSpeedConfiguration } = useGasPrice();
   const route = useRoute();
   const router = useRouter();
 
-  const { nativeTokenSymbol, evmNetworkIdx, isSupportXvmTransfer } = useNetworkInfo();
+  const { nativeTokenSymbol, evmNetworkIdx, isSupportAuTransfer, isZkEvm } = useNetworkInfo();
   const isH160 = computed<boolean>(() => store.getters['general/isH160Formatted']);
   const tokenSymbol = computed<string>(() => route.query.token as string);
   const isLoading = computed<boolean>(() => store.getters['general/isLoading']);
@@ -76,7 +66,13 @@ export function useTokenTransfer(selectedToken: Ref<Asset>) {
     const isNativeTokenSs58ToEvm =
       isSs58 && isTransferNativeToken.value && isValidEvmAddress(toAddress.value);
 
-    return !isTransferNativeToken.value || isNativeTokenEvmToSs58 || isNativeTokenSs58ToEvm;
+    return (
+      !isTransferNativeToken.value ||
+      isNativeTokenEvmToSs58 ||
+      isNativeTokenSs58ToEvm ||
+      isZkEvm.value ||
+      isLockdropAccount.value
+    );
   });
 
   const fromAddressBalance = computed<number>(() =>
@@ -97,8 +93,8 @@ export function useTokenTransfer(selectedToken: Ref<Asset>) {
 
   const isValidDestAddress = computed<boolean>(() => {
     const isOnlyAcceptEvmAddress =
-      isH160.value && !isTransferNativeToken.value && !isSupportXvmTransfer.value;
-    return isOnlyAcceptEvmAddress
+      isH160.value && !isTransferNativeToken.value && !isSupportAuTransfer.value;
+    return isOnlyAcceptEvmAddress || isZkEvm.value
       ? isValidEvmAddress(toAddress.value)
       : isValidAddressPolkadotAddress(toAddress.value, ASTAR_SS58_FORMAT) ||
           isValidAddressPolkadotAddress(toAddress.value, SUBSTRATE_SS58_FORMAT) ||
@@ -107,7 +103,6 @@ export function useTokenTransfer(selectedToken: Ref<Asset>) {
 
   const inputHandler = (event: any): void => {
     transferAmt.value = event.target.value;
-    errMsg.value = '';
   };
 
   const resetStates = (): void => {
@@ -122,17 +117,35 @@ export function useTokenTransfer(selectedToken: Ref<Asset>) {
     transferAmt.value = String(selectedToken.value.userBalance);
   };
 
-  const setErrorMsg = (): void => {
+  const checkUnifiedAccount = async (): Promise<boolean> => {
+    const isEvmAddress = isValidEvmAddress(toAddress.value);
+    const service = container.get<IAccountUnificationService>(Symbols.AccountUnificationService);
+    if (isH160.value) {
+      return isEvmAddress ? true : await service.checkIsUnifiedAccount(toAddress.value);
+    } else {
+      return isEvmAddress ? await service.checkIsUnifiedAccount(toAddress.value) : true;
+    }
+  };
+
+  const setErrorMsg = async (): Promise<void> => {
     if (isLoading.value) return;
     const transferAmtRef = Number(transferAmt.value);
     try {
-      if (transferAmtRef > fromAddressBalance.value) {
+      if (transferAmtRef && transferAmtRef > fromAddressBalance.value) {
         errMsg.value = t('warning.insufficientBalance', {
           token: selectedToken.value.metadata.symbol,
         });
       } else if (toAddress.value && !isValidDestAddress.value) {
         errMsg.value = 'warning.inputtedInvalidDestAddress';
-      } else if (!transferableBalance.value && !isH160.value) {
+        return;
+      } else if (
+        isH160.value &&
+        toAddress.value &&
+        !isTransferNativeToken.value &&
+        !(await checkUnifiedAccount())
+      ) {
+        errMsg.value = 'warning.inputtedNotUnifiedDestAddress';
+      } else if (transferAmtRef && !transferableBalance.value && !isH160.value) {
         errMsg.value = t('warning.insufficientBalance', {
           token: nativeTokenSymbol.value,
         });
@@ -171,11 +184,14 @@ export function useTokenTransfer(selectedToken: Ref<Asset>) {
 
     try {
       const assetsService = container.get<IAssetsService>(Symbols.AssetsService);
+      const accountUnificationService = container.get<IAccountUnificationService>(
+        Symbols.AccountUnificationService
+      );
 
       if (isH160.value) {
         const receivingAddress = isValidEvmAddress(toAddress)
           ? toAddress
-          : buildEvmAddress(toAddress);
+          : await accountUnificationService.getConvertedEvmAddress(toAddress);
         const successMessage = t('assets.toast.completedMessage', {
           symbol,
           transferAmt,
@@ -192,7 +208,7 @@ export function useTokenTransfer(selectedToken: Ref<Asset>) {
         });
       } else {
         const receivingAddress = isValidEvmAddress(toAddress)
-          ? toSS58Address(toAddress)
+          ? await accountUnificationService.getConvertedNativeAddress(toAddress)
           : toAddress;
         const successMessage = t('assets.toast.completedMessage', {
           symbol,
@@ -224,7 +240,8 @@ export function useTokenTransfer(selectedToken: Ref<Asset>) {
     if (!apiRef || !address || !web3Ref) return 0;
     if (isValidAddressPolkadotAddress(address)) {
       const { data } = await apiRef.query.system.account(address);
-      return Number(ethers.utils.formatEther(data.free.toString()));
+      const transferableBalance = data.free.sub(data.frozen);
+      return Number(ethers.utils.formatEther(transferableBalance.toString()));
     }
     if (ethers.utils.isAddress(address)) {
       const balance = await web3Ref.eth.getBalance(address);
@@ -238,17 +255,23 @@ export function useTokenTransfer(selectedToken: Ref<Asset>) {
       toAddressBalance.value = 0;
       return;
     }
+    const accountUnificationService = container.get<IAccountUnificationService>(
+      Symbols.AccountUnificationService
+    );
 
     const isSendToH160 = isValidEvmAddress(toAddress.value);
-    const destAddress = isSendToH160 ? toSS58Address(toAddress.value) : toAddress.value;
+    const destAddress = isSendToH160
+      ? await accountUnificationService.getConvertedNativeAddress(toAddress.value)
+      : toAddress.value;
     const srcChainId = evmNetworkIdx.value;
 
-    if (isTransferNativeToken.value) {
+    if (isTransferNativeToken.value && !isZkEvm.value) {
       toAddressBalance.value = await getNativeTokenBalance(destAddress);
     } else if (isH160.value) {
       const address = isValidAddressPolkadotAddress(toAddress.value)
-        ? buildEvmAddress(toAddress.value)
+        ? await accountUnificationService.getConvertedEvmAddress(toAddress.value)
         : toAddress.value;
+
       const balance = await getTokenBal({
         srcChainId,
         address,
@@ -266,47 +289,8 @@ export function useTokenTransfer(selectedToken: Ref<Asset>) {
     }
   };
 
-  const setEvmGasCost = async (): Promise<void> => {
-    if (!selectedGas.value || !isH160.value) return;
-    try {
-      const isErc20 = !isTransferNativeToken.value;
-      const transferAmtRef = transferAmt.value || '0';
-      const value = isErc20 ? '0x0' : transferAmtRef;
-      const destination = ethers.utils.isAddress(toAddress.value)
-        ? toAddress.value
-        : sampleEvmWalletAddress;
-
-      const destAddress = isErc20 ? selectedToken.value.mappedERC20Addr : destination;
-      const contract = isErc20
-        ? new $web3.value!.eth.Contract(ABI as AbiItem[], selectedToken.value.mappedERC20Addr)
-        : undefined;
-
-      const encodedData = isErc20
-        ? contract!.methods
-            .transfer(
-              destination,
-              ethers.utils.parseUnits(transferAmtRef, selectedToken.value.metadata.decimals)
-            )
-            .encodeABI()
-        : undefined;
-
-      evmGasCost.value = await getEvmGasCost({
-        isNativeToken: !isErc20,
-        evmGasPrice: evmGasPrice.value,
-        fromAddress: currentAccount.value,
-        toAddress: destAddress,
-        web3: $web3.value!,
-        value,
-        encodedData,
-      });
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
   watchEffect(setErrorMsg);
   watchEffect(setToAddressBalance);
-  watchEffect(setEvmGasCost);
   watch([tokenSymbol], resetStates);
 
   return {
@@ -321,10 +305,8 @@ export function useTokenTransfer(selectedToken: Ref<Asset>) {
     isChecked,
     isH160,
     isTransferNativeToken,
-    selectedGas,
-    evmGasCost,
     isRequiredCheck,
-    setSelectedGas,
+    isEnableSpeedConfiguration,
     setSelectedTip,
     inputHandler,
     resetStates,

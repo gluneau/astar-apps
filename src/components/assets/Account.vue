@@ -1,113 +1,161 @@
 <template>
   <div class="wrapper--account">
-    <div v-if="isLockdropAccount && !isH160" class="container--lockdrop-warning">
-      <div>
-        <span class="text--warning-bold">{{ $t('assets.inLockdropAccount') }}</span>
-      </div>
-      <ul class="row--warning-list">
-        <li class="text--warning">
-          {{ $t('assets.cantTransferToExcahges') }}
-        </li>
-        <li class="text--warning">{{ $t('assets.noHash') }}</li>
-      </ul>
-    </div>
+    <div class="row--account-rewards">
+      <div class="container--account" :class="`network-${currentNetworkIdx}`">
+        <div class="account-bg" :style="{ backgroundImage: `url(${bg})` }" />
 
-    <div class="container">
-      <div
-        v-if="isLockdropAccount || (!isH160 && currentAccountName === ETHEREUM_EXTENSION)"
-        class="row"
-      >
-        <span class="text--title">{{ $t('assets.lockdropAccount') }}</span>
-        <span class="text--switch-account" @click="toggleEvmWalletSchema">
-          {{ $t(isH160 ? 'assets.switchToNative' : 'assets.switchToEvm') }}
-        </span>
-      </div>
-
-      <div class="row--details">
-        <div class="column-account-name">
-          <img
-            v-if="iconWallet"
-            width="24"
-            :src="iconWallet"
-            alt="wallet-icon"
-            :class="multisig && 'img--polkasafe'"
-          />
-          <span class="text--accent">{{ currentAccount ? currentAccountName : 'My Wallet' }}</span>
-        </div>
-        <div class="column-address-icons">
-          <div class="column__address">
-            <span>{{ getShortenAddress(currentAccount) }}</span>
+        <div class="wallet-tab">
+          <div v-if="isLockdropAccount && isAllowLockdropDispatch" class="row--lockdrop">
+            <span>{{ $t('assets.lockdropAccount') }}</span>
+            <span class="text--switch-account" @click="toggleEvmWalletSchema">
+              {{ $t(isH160 ? 'assets.switchToNative' : 'assets.switchToEvm') }}
+            </span>
           </div>
-          <div class="row__column--right">
-            <div class="screen--sm" :class="isH160 ? 'column--usd' : 'column--usd-native'">
-              <span class="text--accent">{{ $n(totalBal) }} USD</span>
+          <div v-else />
+          <div class="wallet-tab__bg">
+            <!-- EVM -->
+            <template v-if="isH160">
+              <!-- zkEVM -->
+              <template v-if="isZkEvm">
+                <a class="btn" href="/shibuya-testnet/assets"> Shibuya EVM (L1) </a>
+                <div v-if="isZkEvm" class="btn active">Astar zKatana</div>
+              </template>
+
+              <!-- Astar EVM -->
+              <template v-else>
+                <div class="btn active">
+                  {{ currentNetworkName.replace('Network', '') }}
+                  EVM (L1)
+                </div>
+                <a v-if="currentNetworkIdx === 2" class="btn" href="/zkatana-testnet/assets">
+                  Astar zKatana
+                </a>
+                <a v-else-if="currentNetworkIdx !== 1" class="btn" disabled>Astar zkEVM</a>
+              </template>
+            </template>
+
+            <!-- Native -->
+            <div v-else class="btn active">
+              {{ currentNetworkIdx === 4 ? 'Astar' : currentNetworkName.replace('Network', '') }}
+              {{ $t('native') }}
             </div>
-            <div class="column__icons">
-              <div>
-                <button id="copyAddress" type="button" class="icon--primary" @click="copyAddress">
-                  <astar-icon-copy />
-                </button>
-                <q-tooltip>
-                  <span class="text--tooltip">{{ $t('copy') }}</span>
-                </q-tooltip>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="row--account-info">
+            <div class="column--account-icon">
+              <au-icon
+                v-if="isAccountUnified"
+                :native-address="unifiedAccount?.nativeAddress"
+                :icon-url="unifiedAccount?.avatarUrl"
+              />
+              <img
+                v-else-if="iconWallet"
+                width="24"
+                :src="iconWallet"
+                alt="wallet-icon"
+                :class="multisig && 'img--polkasafe'"
+              />
+            </div>
+
+            <div>
+              <div class="text--address">
+                <span>{{ getShortenAddress(currentAccount) }}</span>
               </div>
-              <a :href="isH160 ? blockscout : subScan" target="_blank" rel="noopener noreferrer">
-                <button class="icon--primary">
-                  <astar-icon-external-link />
-                </button>
-
-                <q-tooltip>
-                  <span class="text--tooltip">{{ $t(isH160 ? 'blockscout' : 'subscan') }}</span>
-                </q-tooltip>
-              </a>
+              <div class="text--balance">
+                {{ $n(totalBal) }}
+                <span>{{ $t('usd') }}</span>
+              </div>
             </div>
           </div>
+
+          <div class="row--actions">
+            <div v-if="isAccountUnification">
+              <button type="button" class="btn--icon" @click="showAccountUnificationModal()">
+                <astar-icon-person />
+              </button>
+              <q-tooltip>
+                <span class="text--tooltip">{{ $t('assets.unifyAccounts') }}</span>
+              </q-tooltip>
+            </div>
+
+            <div>
+              <button id="copyAddress" type="button" class="btn--icon" @click="copyAddress">
+                <astar-icon-copy class="icon--copy" />
+              </button>
+              <q-tooltip>
+                <span class="text--tooltip">{{ $t('copy') }}</span>
+              </q-tooltip>
+            </div>
+
+            <a :href="isH160 ? blockscout : subScan" target="_blank" rel="noopener noreferrer">
+              <button class="btn--icon">
+                <astar-icon-external-link class="icon--external-link" />
+              </button>
+              <q-tooltip>
+                <span class="text--tooltip">{{ $t(isH160 ? 'blockscout' : 'subscan') }}</span>
+              </q-tooltip>
+            </a>
+          </div>
+        </div>
+        <div v-if="isWalletConnect" class="row--wc-warning">
+          <span class="text--warning">
+            {{
+              $t('assets.verifyWalletCompatibility', {
+                network: currentNetworkName.replace('Network', ''),
+              })
+            }}
+          </span>
         </div>
       </div>
-      <div v-if="multisig" class="row--details-signatory">
-        <div class="column-account-name">
-          <img v-if="iconWallet" width="24" :src="signatoryIconWallet" alt="wallet-icon" />
-          <span class="text--accent">{{
-            $t('assets.theSignatory', { account: multisig.signatory.name })
-          }}</span>
-        </div>
-      </div>
-      <div class="row screen--phone">
-        <span>{{ $t('assets.totalBalance') }}</span>
-        <q-skeleton v-if="isSkeleton" animation="fade" class="skeleton--md" />
-        <span v-else class="text--total-balance"> ${{ $n(totalBal) }} </span>
-      </div>
-      <native-asset-list v-if="!isH160" />
     </div>
+
+    <div v-if="multisig" class="row--details-signatory">
+      <div class="column-account-name">
+        <img v-if="iconWallet" width="24" :src="signatoryIconWallet" alt="wallet-icon" />
+        <span class="text--accent">{{
+          $t('assets.theSignatory', { account: multisig.signatory.name })
+        }}</span>
+      </div>
+    </div>
+    <modal-lockdrop-warning
+      v-if="isLockdropAccount && !isH160"
+      :is-modal="isModalLockdropWarning"
+      :handle-modal="handleModalLockdropWarning"
+    />
   </div>
 </template>
 <script lang="ts">
-import { isValidEvmAddress, getShortenAddress } from '@astar-network/astar-sdk-core';
+import { getShortenAddress, isValidEvmAddress } from '@astar-network/astar-sdk-core';
 import { FrameSystemAccountInfo } from '@polkadot/types/lookup';
 import copy from 'copy-to-clipboard';
 import { ethers } from 'ethers';
 import { $api } from 'src/boot/api';
+import AuIcon from 'src/components/header/modals/account-unification/AuIcon.vue';
 import { endpointKey, providerEndpoints } from 'src/config/chainEndpoints';
+import { SupportWallet, supportWalletObj } from 'src/config/wallets';
 import {
+  ETHEREUM_EXTENSION,
   useAccount,
   useBalance,
-  useConnectWallet,
   useNetworkInfo,
   usePrice,
   useWalletIcon,
+  useAccountUnification,
+  useConnectWallet,
 } from 'src/hooks';
 import { useEvmAccount } from 'src/hooks/custom-signature/useEvmAccount';
 import { getEvmMappedSs58Address, setAddressMapping } from 'src/hooks/helper/addressUtils';
 import { useStore } from 'src/store';
 import { computed, defineComponent, ref, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
-import NativeAssetList from 'src/components/assets/NativeAssetList.vue';
-import { ETHEREUM_EXTENSION } from 'src/hooks';
-import { supportWalletObj } from 'src/config/wallets';
+import ModalLockdropWarning from 'src/components/assets/modals/ModalLockdropWarning.vue';
 
 export default defineComponent({
   components: {
-    NativeAssetList,
+    AuIcon,
+    ModalLockdropWarning,
   },
   props: {
     ttlErc20Amount: {
@@ -123,12 +171,22 @@ export default defineComponent({
     const balUsd = ref<number | null>(null);
     const isCheckingSignature = ref<boolean>(false);
     const isLockdropAccount = ref<boolean>(false);
+    const isModalLockdropWarning = ref<boolean>(true);
+
+    const {
+      currentAccount,
+      currentAccountName,
+      multisig,
+      showAccountUnificationModal,
+      isAccountUnification,
+    } = useAccount();
+
     const { toggleEvmWalletSchema } = useConnectWallet();
-    const { currentAccount, currentAccountName, multisig } = useAccount();
     const { balance, isLoadingBalance } = useBalance(currentAccount);
     const { nativeTokenUsd } = usePrice();
     const { requestSignature } = useEvmAccount();
     const { iconWallet } = useWalletIcon();
+    const { unifiedAccount, isAccountUnified } = useAccountUnification();
 
     const store = useStore();
     const { t } = useI18n();
@@ -137,7 +195,13 @@ export default defineComponent({
     const isH160 = computed<boolean>(() => store.getters['general/isH160Formatted']);
     const isEthWallet = computed<boolean>(() => store.getters['general/isEthWallet']);
 
-    const { currentNetworkIdx } = useNetworkInfo();
+    const { currentNetworkIdx, isZkEvm, isAllowLockdropDispatch } = useNetworkInfo();
+
+    const isWalletConnect = computed<boolean>(() => {
+      const currentWallet = store.getters['general/currentWallet'];
+      return currentWallet === SupportWallet.WalletConnect;
+    });
+
     const blockscout = computed<string>(
       () =>
         `${providerEndpoints[currentNetworkIdx.value].blockscout}/address/${currentAccount.value}`
@@ -167,6 +231,10 @@ export default defineComponent({
       if (!nativeTokenUsd.value) return false;
       return isLoadingBalance.value;
     });
+
+    const handleModalLockdropWarning = ({ isOpen }: { isOpen: boolean }) => {
+      isModalLockdropWarning.value = isOpen;
+    };
 
     watch(
       [balance, nativeTokenUsd, currentAccount, isH160],
@@ -204,6 +272,7 @@ export default defineComponent({
         const apiRef = $api;
         if (!isEthWallet.value) {
           isLockdropAccount.value = false;
+
           return;
         }
         if (
@@ -231,6 +300,27 @@ export default defineComponent({
       { immediate: false }
     );
 
+    const bg_img = {
+      native: require('/src/assets/img/account_bg_native.webp'),
+      shiden: require('/src/assets/img/account_bg_shiden.webp'),
+      testnet: require('/src/assets/img/account_bg_testnet.webp'),
+      zk: require('/src/assets/img/account_bg_zk.webp'),
+      testnet_zk: require('/src/assets/img/account_bg_testnet_zk.webp'),
+    };
+
+    const bg = computed<String>(() => {
+      if (currentNetworkIdx.value === endpointKey.ASTAR) {
+        return bg_img.native;
+      } else if (currentNetworkIdx.value === endpointKey.SHIDEN) {
+        return bg_img.shiden;
+      } else if (currentNetworkIdx.value === endpointKey.ZKATANA) {
+        return bg_img.testnet_zk;
+      }
+      return bg_img.testnet;
+    });
+
+    const currentNetworkName = ref<string>(providerEndpoints[currentNetworkIdx.value].displayName);
+
     return {
       iconWallet,
       currentAccountName,
@@ -241,15 +331,27 @@ export default defineComponent({
       isH160,
       isEthWallet,
       balUsd,
-      isLockdropAccount,
       isSkeleton,
       totalBal,
       ETHEREUM_EXTENSION,
       multisig,
       supportWalletObj,
       signatoryIconWallet,
+      isAccountUnification,
+      unifiedAccount,
+      isAccountUnified,
+      isZkEvm,
+      bg,
+      currentNetworkIdx,
+      currentNetworkName,
+      isLockdropAccount,
+      isModalLockdropWarning,
+      isAllowLockdropDispatch,
+      isWalletConnect,
+      handleModalLockdropWarning,
       getShortenAddress,
       copyAddress,
+      showAccountUnificationModal,
       toggleEvmWalletSchema,
     };
   },

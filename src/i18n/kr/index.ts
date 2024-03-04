@@ -70,7 +70,6 @@ export default {
     dappStaking: '디앱 스테이킹',
     staking: '스테이킹',
     contract: '컨트랙트',
-    plasmLockdrop: '플라즘 락드롭',
     closeSidebar: '사이드바 닫기',
     twitter: '트위터',
     telegram: '텔레그램',
@@ -113,8 +112,8 @@ export default {
   wallet: {
     connectWallet: '지갑 연결',
     select: '포털 연결을 위한 지갑을 선택해 주십시오',
-    nativeAccount: '네이티브 계정',
-    evmAccount: 'EVM 계정',
+    nativeWallets: '네이티브 계정',
+    evmWallets: 'EVM 계정',
     math: {
       supportsNetwork: '매쓰 월렛은 샤이든 네트워크만 지원합니다',
       switchNetwork:
@@ -293,7 +292,7 @@ export default {
       requiredClaimFirst: '거래를 전송하기 전에 보상을 클레임하여 주십시오.',
       requiredClaimFirstCompounding:
         '{message} -컴파운딩 기능 해제, 보상을 클레임 한 뒤 다시 컴파운딩 기능을 켜주십시오.',
-      successfullyWithdrew: '해당 잔고가 성공적으로 출금되었습니다.',
+      successfullyWithdrawn: '해당 잔고가 성공적으로 출금되었습니다.',
       successfullySetRewardDest: '보상 받을 위치를 성공적으로 설정하였습니다.',
     },
     error: {
@@ -325,8 +324,6 @@ export default {
     yourEvmDeposit: 'EVM 예치금',
     yourVestingInfo: '베스팅 정보',
     yourStaking: '스테이킹 수량',
-    lockdropAccount: '락드롭 계정',
-    inLockdropAccount: '락드롭 계정에 연결',
     cantTransferToExcahges: '거래소로 전송 불가',
     noHash: '거래 해시 없음',
     addToWallet: '지갑에 추가',

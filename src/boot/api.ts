@@ -1,4 +1,9 @@
-import { capitalize, getRandomFromArray, objToArray } from '@astar-network/astar-sdk-core';
+import {
+  capitalize,
+  getRandomFromArray,
+  hasProperty,
+  objToArray,
+} from '@astar-network/astar-sdk-core';
 import { SubstrateAccount } from 'src/store/general/state';
 import { ApiPromise } from '@polkadot/api';
 import { keyring } from '@polkadot/ui-keyring';
@@ -16,24 +21,17 @@ import { useExtensions } from 'src/hooks/useExtensions';
 import { useMetaExtensions } from 'src/hooks/useMetaExtensions';
 import { computed, ref, watchPostEffect } from 'vue';
 import Web3 from 'web3';
-import { supportWalletObj } from 'src/config/wallets';
+import { SupportWallet, supportWalletObj } from 'src/config/wallets';
+import { initiatePolkdatodSnap } from 'src/modules/snap';
+import { initPolkadotSnap } from '@astar-network/metamask-astar-adapter';
 
 let $api: ApiPromise | undefined;
 const $web3 = ref<Web3>();
 
 export default boot(async ({ store }) => {
-  const {
-    NETWORK_IDX,
-    CUSTOM_ENDPOINT,
-    SELECTED_ENDPOINT,
-    SELECTED_ADDRESS,
-    SELECTED_WALLET,
-    IS_APPLIED_RANDOM_ENDPOINT,
-    DEFAULT_CURRENCY,
-  } = LOCAL_STORAGE;
+  const { NETWORK_IDX, SELECTED_ENDPOINT, SELECTED_ADDRESS, SELECTED_WALLET } = LOCAL_STORAGE;
 
   const networkIdxStore = localStorage.getItem(NETWORK_IDX);
-  const customEndpoint = localStorage.getItem(CUSTOM_ENDPOINT);
   const selectedEndpointData = localStorage.getItem(SELECTED_ENDPOINT);
   const networkIdx = computed(() => store.getters['general/networkIdx']);
 
@@ -64,38 +62,17 @@ export default boot(async ({ store }) => {
   if (networkIdxStore) {
     store.commit('general/setCurrentNetworkIdx', Number(networkIdxStore));
   }
-  if (customEndpoint) {
-    store.commit('general/setCurrentCustomEndpoint', customEndpoint);
-  }
 
-  let endpoint = selectedEndpoint.hasOwnProperty(networkIdx.value)
+  let endpoint = hasProperty(selectedEndpoint, networkIdx.value)
     ? selectedEndpoint[networkIdx.value]
     : defaultEndpoint;
   if (networkIdx.value === endpointKey.CUSTOM) {
-    const customEndpoint = computed(() => store.getters['general/customEndpoint']);
-    endpoint = customEndpoint.value;
+    const inputtedEndpoint = JSON.parse(String(selectedEndpointData));
+    endpoint = Object.values(inputtedEndpoint)[0] as string;
   }
 
   if (networkIdx.value === endpointKey.LOCAL) {
     endpoint = providerEndpoints[networkIdx.value].endpoints[0].endpoint;
-  }
-
-  // Memo: Temporary solution to reset selected endpoints for users who connected to Astar WSS before implementing the random selection method.
-  // Todo: Remove this code in middle of July'23
-  const isAppliedRandomEndpoint = localStorage.getItem(IS_APPLIED_RANDOM_ENDPOINT) === 'true';
-  if (!isAppliedRandomEndpoint) {
-    const astarWss = providerEndpoints[endpointKey.ASTAR].endpoints[0].endpoint;
-    const isResetEndpoint =
-      selectedEndpoint.hasOwnProperty(endpointKey.ASTAR) &&
-      selectedEndpoint[endpointKey.ASTAR] === astarWss;
-    if (isResetEndpoint) {
-      localStorage.removeItem(SELECTED_ENDPOINT);
-      localStorage.removeItem(NETWORK_IDX);
-      localStorage.removeItem(DEFAULT_CURRENCY);
-      localStorage.setItem(IS_APPLIED_RANDOM_ENDPOINT, 'true');
-      window.location.reload();
-    }
-    localStorage.setItem(IS_APPLIED_RANDOM_ENDPOINT, 'true');
   }
 
   // set metadata header
@@ -143,24 +120,41 @@ export default boot(async ({ store }) => {
     }
   });
 
+  const setWeb3 = async (networkId: TNetworkId): Promise<void> => {
+    const web3 = await createAstarWeb3Instance(networkId);
+    if (!web3) {
+      console.error(`cannot create the web3 instance with network id ${networkId}`);
+    }
+    $web3.value = web3;
+  };
+
   // update chaininfo
   const { chainInfo } = useChainInfo(api);
   watchPostEffect(async () => {
     store.commit('general/setChainInfo', chainInfo.value);
-    if (chainInfo.value?.chain) {
-      const currentChain = chainInfo.value?.chain as ASTAR_CHAIN;
-      const currentNetworkIdx = getProviderIndex(currentChain);
-      const web3 = await createAstarWeb3Instance(currentNetworkIdx as TNetworkId);
-      if (!web3) {
-        console.error(`cannot create the web3 instance with network id ${currentNetworkIdx}`);
+    const networkIdx = store.getters['general/networkIdx'];
+    const isZkEvm = networkIdx === endpointKey.ZKATANA || networkIdx === endpointKey.ASTAR_ZKEVM;
+
+    if (isZkEvm) {
+      await setWeb3(networkIdx);
+    } else {
+      if (chainInfo.value?.chain) {
+        const currentChain = chainInfo.value?.chain as ASTAR_CHAIN;
+        const currentNetworkIdx = getProviderIndex(currentChain);
+        await setWeb3(currentNetworkIdx as TNetworkId);
       }
-      $web3.value = web3;
     }
   });
 
   // execute extension process automatically if selectedAddress is linked or mobile device
   const wallet = String(localStorage.getItem(SELECTED_WALLET));
-  const isSubstrateWallet = supportWalletObj.hasOwnProperty(wallet);
+  const isSubstrateWallet = hasProperty(supportWalletObj, wallet);
+
+  if (wallet === SupportWallet.Snap) {
+    const isSnapInstalled = await initiatePolkdatodSnap();
+    isSnapInstalled && (await initPolkadotSnap());
+  }
+
   if (isSubstrateWallet) {
     if (selectedAddress !== null || isMobileDevice) {
       const { extensions } = useExtensions(api, store);

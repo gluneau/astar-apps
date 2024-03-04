@@ -1,14 +1,15 @@
-import { useAccount, useNetworkInfo } from 'src/hooks';
 import { wait } from '@astar-network/astar-sdk-core';
+import { useAccount, useNetworkInfo } from 'src/hooks';
+import { useDappStaking } from 'src/staking-v3';
 import { useStore } from 'src/store';
-import { computed, watchEffect } from 'vue';
+import { computed, watch } from 'vue';
 
 export function useDispatchGetDapps() {
   const store = useStore();
-  const { currentNetworkName } = useNetworkInfo();
-  const { currentAccount } = useAccount();
-  const isH160 = computed<boolean>(() => store.getters['general/isH160Formatted']);
+  const { isZkEvm, networkNameSubstrate } = useNetworkInfo();
+  const { senderSs58Account } = useAccount();
   const dapps = computed(() => store.getters['dapps/getAllDapps']);
+  const { isDappStakingV3 } = useDappStaking();
 
   // Memo: invoke this function whenever the users haven't connect to wallets
   const getDappsForBrowser = async (): Promise<void> => {
@@ -18,32 +19,34 @@ export function useDispatchGetDapps() {
 
     const isBrowsingOnly = !!(
       dapps.value.length === 0 &&
-      !currentAccount.value &&
-      currentNetworkName.value
+      !senderSs58Account.value &&
+      networkNameSubstrate.value
     );
 
-    if (isBrowsingOnly) {
+    if (isBrowsingOnly || isZkEvm.value) {
       store.dispatch('dapps/getDapps', {
-        network: currentNetworkName.value.toLowerCase(),
-        currentAccount: '',
+        network: networkNameSubstrate.value.toLowerCase(),
+        senderSs58Account: '',
       });
     }
   };
 
   const getDapps = async (): Promise<void> => {
-    const isConnectedWallet = currentNetworkName.value && currentAccount.value;
-    if (isConnectedWallet) {
-      const address = isH160.value || !currentAccount.value ? '' : currentAccount.value;
+    if (isDappStakingV3.value) {
+      return;
+    }
+
+    const isConnectedWallet = networkNameSubstrate.value && senderSs58Account.value;
+    if (isConnectedWallet && !isZkEvm.value) {
+      const address = !senderSs58Account.value ? '' : senderSs58Account.value;
       store.dispatch('dapps/getDapps', {
-        network: currentNetworkName.value.toLowerCase(),
-        currentAccount: address,
+        network: networkNameSubstrate.value.toLowerCase(),
+        senderSs58Account: address,
       });
     } else {
       getDappsForBrowser();
     }
   };
 
-  watchEffect(async () => {
-    await getDapps();
-  });
+  watch([senderSs58Account, networkNameSubstrate], getDapps, { immediate: true });
 }

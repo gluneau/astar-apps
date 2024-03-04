@@ -1,4 +1,4 @@
-import { clickPolicyButton } from 'src/modules/playwright';
+import { clickDisclaimerButton } from 'src/modules/playwright';
 import { BrowserContext, Page, expect } from '@playwright/test';
 import { test } from '../fixtures';
 import {
@@ -19,6 +19,7 @@ import {
 } from '../common';
 import { ApiPromise } from '@polkadot/api';
 import { chainDecimals, getApi, getBalance } from '../common-api';
+import { wait } from '@astar-network/astar-sdk-core';
 
 let api: ApiPromise;
 test.beforeAll(async () => {
@@ -32,9 +33,11 @@ test.afterAll(async () => {
 test.beforeEach(async ({ page, context }: { page: Page; context: BrowserContext }) => {
   // TODO consider moving this into beforeAll
   await page.goto('/astar/assets');
-  await clickPolicyButton(page);
-  const closeButton = page.getByText('Polkadot.js');
-  await closeButton.click();
+  await clickDisclaimerButton(page);
+  const walletTab = page.getByTestId('select-wallet-tab');
+  await walletTab.click();
+  const polkadotJsButton = page.getByText('Polkadot.js');
+  await polkadotJsButton.click();
 
   await closePolkadotWelcomePopup(context);
   await createAccount(page, ALICE_ACCOUNT_SEED, ALICE_ACCOUNT_NAME);
@@ -48,9 +51,7 @@ test.describe('account panel', () => {
   // Test case: AS001
   test('should transfer tokens from Alice to Bob', async ({ page, context }) => {
     const transferAmount = BigInt(1000);
-    await page.locator('.icon--expand').first().click();
-    await page.locator('#asset-expand').getByRole('button', { name: 'Transfer' }).click();
-
+    page.getByTestId('transfer-link-button').click();
     await page.getByPlaceholder('Destination Address').fill(BOB_ADDRESS);
     await page.getByPlaceholder('0.0').fill(transferAmount.toString());
     await page.getByRole('button', { name: 'Confirm' }).click();
@@ -70,9 +71,7 @@ test.describe('account panel', () => {
     await selectMultisigAccount(page, context, false);
     // Memo: PolkaSafe SDK will check the balance of the Multisig account on mainnet before sending the transaction (the SDK through an error if the balance is not enough)
     const transferAmount = BigInt(1);
-    await page.locator('.icon--expand').first().click();
-    await page.locator('#asset-expand').getByRole('button', { name: 'Transfer' }).click();
-
+    page.getByTestId('transfer-link-button').click();
     await page.getByPlaceholder('Destination Address').fill(BOB_ADDRESS);
     await page.getByPlaceholder('0.0').fill(transferAmount.toString());
     await page.getByRole('button', { name: 'Confirm' }).click();
@@ -84,9 +83,7 @@ test.describe('account panel', () => {
     await selectMultisigAccount(page, context, true);
     // Memo: PolkaSafe SDK will check the balance of the Multisig account on mainnet before sending the transaction (the SDK through an error if the balance is not enough)
     const transferAmount = BigInt(1);
-    await page.locator('.icon--expand').first().click();
-    await page.locator('#asset-expand').getByRole('button', { name: 'Transfer' }).click();
-
+    page.getByTestId('transfer-link-button').click();
     await page.getByPlaceholder('Destination Address').fill(BOB_ADDRESS);
     await page.getByPlaceholder('0.0').fill(transferAmount.toString());
     await page.getByRole('button', { name: 'Confirm' }).click();
@@ -101,9 +98,7 @@ test.describe('account panel', () => {
     page: Page;
   }) => {
     const baseTransferAmount = BigInt(1000);
-    await page.locator('.icon--expand').first().click();
-    await page.locator('#asset-expand').getByRole('button', { name: 'Transfer' }).click();
-
+    page.getByTestId('transfer-link-button').click();
     const aliceBalanceBeforeTransaction = await getBalance(ALICE_ADDRESS);
     await page.getByPlaceholder('Destination Address').fill(BOB_ADDRESS);
 
@@ -132,8 +127,7 @@ test.describe('account panel', () => {
     page: Page;
     context: BrowserContext;
   }) => {
-    await page.locator('.icon--expand').first().click();
-    await page.locator('#asset-expand').getByRole('button', { name: 'Transfer' }).click();
+    page.getByTestId('transfer-link-button').click();
     const faucetAmount = BigInt(200);
     await page.getByPlaceholder('Destination Address').fill(ALICE_EVM_ADDRESS);
     await page.getByPlaceholder('0.0').fill(faucetAmount.toString());
@@ -151,9 +145,6 @@ test.describe('account panel', () => {
     page: Page;
   }) => {
     await page.goto('/astar/assets/transfer?token=astr&from=astar&to=acala&mode=xcm');
-    await connectToNetwork(page);
-    await selectAccount(page, ALICE_ACCOUNT_NAME);
-
     const baseTransferAmount = BigInt(5);
     const lowerTransferAmount = BigInt(3);
     const aliceBalanceBeforeTransaction = await getBalance(ALICE_ADDRESS);

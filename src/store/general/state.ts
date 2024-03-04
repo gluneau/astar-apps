@@ -2,12 +2,15 @@ import { GasTip } from '@astar-network/astar-sdk-core';
 import type { Extensions } from 'src/hooks/useMetaExtensions';
 import { endpointKey } from 'src/config/chainEndpoints';
 import { LOCAL_STORAGE } from 'src/config/localStorage';
+import { InflationConfiguration, NftMetadata } from 'src/v2/models';
 
 export type SubstrateAccount = {
   address: string;
   name: string;
   source: string;
   balance?: string;
+  evmAddress?: string;
+  avatarUrl?: string;
 };
 
 export enum AlertType {
@@ -30,6 +33,14 @@ export type EcdsaAccount = {
   h160: string;
 };
 
+export type UnifiedAccount = {
+  nativeAddress: string;
+  evmAddress: string;
+  name: string;
+  avatarUrl?: string;
+  avatarMetadata?: NftMetadata;
+};
+
 export type ConnectionType = 'connected' | 'connecting' | 'offline';
 
 export type Theme = 'LIGHT' | 'DARK';
@@ -50,12 +61,13 @@ export interface GeneralStateInterface {
   isLedger: boolean;
   currentEcdsaAccount: EcdsaAccount;
   currentAddress: string;
-  currentCustomEndpoint: string;
   currentTheme: Theme;
   headerName: string;
   currentWallet: string;
   gas: GasTip | undefined;
   currentBlock: number;
+  unifiedAccount?: UnifiedAccount;
+  activeInflationConfiguration: InflationConfiguration | undefined;
 }
 
 function state(): GeneralStateInterface {
@@ -86,7 +98,6 @@ function state(): GeneralStateInterface {
       h160: '',
     },
     currentAddress: '',
-    currentCustomEndpoint: '',
 
     currentTheme:
       //this queries the media setting
@@ -98,6 +109,7 @@ function state(): GeneralStateInterface {
     currentWallet: '',
     gas: undefined,
     currentBlock: 0,
+    activeInflationConfiguration: undefined,
   };
 }
 

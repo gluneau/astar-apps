@@ -1,6 +1,6 @@
+import { clickDisclaimerButton } from 'src/modules/playwright';
 import { expect } from '@playwright/test';
 import { ApiPromise } from '@polkadot/api';
-import { clickPolicyButton } from 'src/modules/playwright';
 import {
   ALICE_ACCOUNT_NAME,
   ALICE_ACCOUNT_SEED,
@@ -9,12 +9,12 @@ import {
   closePolkadotWelcomePopup,
   connectToNetwork,
   createAccount,
-  createMetamaskAccount,
   selectAccount,
   selectMultisigAccount,
 } from '../common';
 import { getApi } from '../common-api';
 import { test } from '../fixtures';
+import { wait } from '@astar-network/astar-sdk-core';
 
 let api: ApiPromise;
 test.beforeAll(async () => {
@@ -28,9 +28,12 @@ test.afterAll(async () => {
 test.beforeEach(async ({ page, context }) => {
   // TODO consider moving this into beforeAll
   await page.goto('/astar/assets');
-  await clickPolicyButton(page);
-  const closeButton = page.getByText('Polkadot.js');
-  await closeButton.click();
+  await clickDisclaimerButton(page);
+  const walletTab = page.getByTestId('select-wallet-tab');
+  await walletTab.click();
+
+  const polkadotJsButton = page.getByTestId('Polkadot.js');
+  await polkadotJsButton.click();
 
   await closePolkadotWelcomePopup(context);
   await createAccount(page, ALICE_ACCOUNT_SEED, ALICE_ACCOUNT_NAME);
@@ -59,20 +62,9 @@ test.describe('account panel', () => {
   });
 
   test('account expander works', async ({ page }) => {
-    await page.locator('.icon--expand').first().click();
-    const transferButton = page.locator('#asset-expand').getByRole('button', { name: 'Transfer' });
+    const transferButton = page.getByTestId('transfer-link-button');
     await expect(transferButton).toBeVisible();
-
     await page.locator('.icon--expand').first().click();
-    await expect(transferButton).not.toBeVisible();
-  });
-
-  test('EVM sample', async ({ page }) => {
-    await createMetamaskAccount(
-      page,
-      'bottom drive obey lake curtain smoke basket hold race lonely fit walk',
-      'Test'
-    );
-    await page.goto('/astar/assets');
+    await expect(page.getByText('Vesting')).toBeVisible();
   });
 });

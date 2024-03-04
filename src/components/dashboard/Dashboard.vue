@@ -1,12 +1,20 @@
 <template>
   <div class="wrapper--charts">
     <div class="container--chart-panels">
-      <div class="container--value-panel">
+      <div class="container--value-panels-row">
+        <div class="container--network-status">
+          <network-status />
+        </div>
         <div class="container--panel">
           <circulating-panel :symbol="nativeTokenSymbol" :network="currentNetworkName" />
         </div>
+      </div>
+      <div class="container--value-panels-row row-gap">
         <div class="container--panel">
           <value-panel title="Holders" :value="holders" />
+        </div>
+        <div class="container--panel">
+          <collators />
         </div>
       </div>
       <div class="container--panel">
@@ -52,8 +60,11 @@
 import BlockPanel from 'src/components/dashboard/BlockPanel.vue';
 import CirculatingPanel from 'src/components/dashboard/CirculatingPanel.vue';
 import ValuePanel from 'src/components/dashboard/ValuePanel.vue';
+import Collators from 'src/components/dashboard/Collators.vue';
+import NetworkStatus from 'src/components/dashboard/NetworkStatus.vue';
 import TokenPriceChart from 'src/components/dashboard/TokenPriceChart.vue';
 // import TotalTransactionsChart from 'src/components/dashboard/TotalTransactionsChart.vue';
+import { useDataCalculations } from 'src/staking-v3/hooks';
 import TvlChart from 'src/components/dashboard/TvlChart.vue';
 import { useNetworkInfo, useTvlHistorical } from 'src/hooks';
 import { textChart } from 'src/modules/token-api';
@@ -67,6 +78,8 @@ export default defineComponent({
     BlockPanel,
     CirculatingPanel,
     ValuePanel,
+    NetworkStatus,
+    Collators,
     // TotalTransactionsChart,
   },
   setup() {
@@ -82,8 +95,12 @@ export default defineComponent({
       handleMergedTvlFilterChanged,
       filteredMergedTvl,
       mergedTvlAmount,
-      lenStakers,
     } = useTvlHistorical();
+
+    const { numberOfStakersAndLockers } = useDataCalculations();
+    const lenStakers = computed(
+      () => `${numberOfStakersAndLockers.value.stakersCount.toLocaleString('en-US')} stakers`
+    );
 
     const dappStakingTvlTokensDisplay = computed(
       () => `${dappStakingTvlTokens.value} ${nativeTokenSymbol.value}`

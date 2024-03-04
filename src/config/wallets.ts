@@ -24,6 +24,10 @@ export enum SupportWallet {
   HanaEvm = 'hanaEvm',
   OneKeyEvm = 'OneKeyEvm',
   OneKeyNative = 'OneKey',
+  Snap = 'Snap',
+  EnkryptEvm = 'enkryptEvm',
+  EnkryptNative = 'enkrypt',
+  WalletConnect = 'wallet-connect',
 }
 
 export enum SupportMultisig {
@@ -35,6 +39,7 @@ export const WalletModalOption = {
   SelectSubstrateAccount: 'SelectSubstrateAccount',
   NoExtension: 'NoExtension',
   OutdatedWallet: 'OutdatedWallet',
+  AccountUnification: 'AccountUnification',
   Polkasafe: SupportMultisig.Polkasafe,
   PolkadotJs: SupportWallet.PolkadotJs,
   Clover: SupportWallet.Clover,
@@ -52,6 +57,9 @@ export const WalletModalOption = {
   HanaEvm: SupportWallet.HanaEvm,
   OneKey: SupportWallet.OneKeyNative,
   OneKeyEvm: SupportWallet.OneKeyEvm,
+  Snap: SupportWallet.Snap,
+  EnkryptEvm: SupportWallet.EnkryptEvm,
+  EnkryptNative: SupportWallet.EnkryptNative,
 };
 
 export const SubstrateWallets = [
@@ -66,6 +74,8 @@ export const SubstrateWallets = [
   SupportWallet.Wallet3,
   SupportWallet.HanaNative,
   SupportWallet.OneKeyNative,
+  SupportWallet.Snap,
+  SupportWallet.EnkryptNative,
 ];
 
 export interface Wallet {
@@ -86,7 +96,17 @@ export const supportWalletObj = {
     name: 'Polkadot.js',
     source: SupportWallet.PolkadotJs,
     walletUrl: 'https://polkadot.js.org/extension/',
-    guideUrl: 'https://docs.astar.network/docs/user-guides/create-wallet/#create-account',
+    guideUrl: 'https://docs.astar.network/docs/use/user-guides/create-wallet',
+    isSupportBrowserExtension: true,
+    isSupportMobileApp: false,
+  },
+  [SupportWallet.Snap]: {
+    img: require('/src/assets/img/metamask.png'),
+    name: 'Astar Snap',
+    source: SupportWallet.Snap,
+    walletUrl: 'https://snaps.metamask.io/snap/npm/astar-network/snap/',
+    guideUrl:
+      'https://docs.astar.network/docs/use/manage-wallets/wallet-providers/metamask-astar-snap/',
     isSupportBrowserExtension: true,
     isSupportMobileApp: false,
   },
@@ -109,7 +129,7 @@ export const supportWalletObj = {
     isSupportMobileApp: true,
   },
   [SupportWallet.SubWalletNative]: {
-    img: require('/src/assets/img/logo-subwallet.svg'),
+    img: require('/src/assets/img/logo-subwallet.webp'),
     name: 'SubWallet (Native)',
     source: SupportWallet.SubWalletNative,
     walletUrl: 'https://subwallet.app/download.html',
@@ -171,6 +191,15 @@ export const supportWalletObj = {
     isSupportBrowserExtension: true,
     isSupportMobileApp: true,
   },
+  [SupportWallet.EnkryptNative]: {
+    img: require('/src/assets/img/logo-enkrypt.svg'),
+    name: 'Enkrypt (Native)',
+    source: SupportWallet.EnkryptNative,
+    walletUrl: 'https://www.enkrypt.com',
+    guideUrl: 'https://myetherwallet.gitbook.io/enkrypt-documentation/',
+    isSupportBrowserExtension: true,
+    isSupportMobileApp: false,
+  },
 };
 
 export const supportEvmWalletObj = {
@@ -215,7 +244,7 @@ export const supportEvmWalletObj = {
     ethExtension: 'talismanEth',
   },
   [SupportWallet.SubWalletEvm]: {
-    img: require('/src/assets/img/logo-subwallet.svg'),
+    img: require('/src/assets/img/logo-subwallet.webp'),
     name: 'SubWallet (EVM)',
     source: SupportWallet.SubWalletEvm,
     walletUrl: 'https://subwallet.app/download.html',
@@ -254,6 +283,26 @@ export const supportEvmWalletObj = {
     isSupportMobileApp: false,
     ethExtension: 'hanaWalletEth',
   },
+  [SupportWallet.EnkryptEvm]: {
+    img: require('/src/assets/img/logo-enkrypt.svg'),
+    name: 'Enkrypt (EVM)',
+    source: SupportWallet.EnkryptEvm,
+    walletUrl: 'https://www.enkrypt.com',
+    guideUrl: 'https://myetherwallet.gitbook.io/enkrypt-documentation/',
+    isSupportBrowserExtension: true,
+    isSupportMobileApp: false,
+    ethExtension: 'enkrypt.providers.ethereum',
+  },
+  [SupportWallet.WalletConnect]: {
+    img: require('/src/assets/img/wallet-connect.png'),
+    name: 'WalletConnect',
+    source: SupportWallet.WalletConnect,
+    walletUrl: 'https://walletconnect.com/',
+    guideUrl: 'https://walletconnect.com/',
+    isSupportBrowserExtension: true,
+    isSupportMobileApp: false,
+    ethExtension: SupportWallet.WalletConnect,
+  },
 };
 
 export const supportAllWalletsObj = {
@@ -264,7 +313,3 @@ export const supportAllWalletsObj = {
 export const supportEvmWallets = objToArray(supportEvmWalletObj) as Wallet[];
 export const supportWallets = objToArray(supportWalletObj) as Wallet[];
 export const supportAllWallets = objToArray(supportAllWalletsObj) as Wallet[];
-
-// Memo: defined by hard-coding to avoid sending too many requests to faucet API server
-// Ref: https://github.com/AstarNetwork/astar-faucet-bot/blob/main/src/clients/astar.ts#L225
-export const faucetBalRequirement = 0.01 / 2;

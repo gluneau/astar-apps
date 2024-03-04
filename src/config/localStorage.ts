@@ -1,10 +1,10 @@
+import { hasProperty } from '@astar-network/astar-sdk-core';
 import { SupportMultisig } from './wallets';
 
 export enum LOCAL_STORAGE {
   DEFAULT_CURRENCY = 'defaultCurrency',
   NETWORK_IDX = 'networkIdx',
   SELECTED_ENDPOINT = 'selectedEndpoint',
-  CUSTOM_ENDPOINT = 'customEndpoint',
   SELECTED_ADDRESS = 'selectedAddress',
   EVM_ADDRESS_MAPPING = 'evmAddressMapping',
   EVM_TOKEN_IMPORTS = 'evmTokenImports',
@@ -19,8 +19,9 @@ export enum LOCAL_STORAGE {
   BALLOON_NATIVE_TOKEN = 'balloonNativeToken',
   THEME_COLOR = 'themeColor',
   IS_LEDGER = 'isLedger',
-  IS_APPLIED_RANDOM_ENDPOINT = 'isAppliedRandomEndpoint', // Todo: Remove this line in middle of July'23
   MULTISIG = 'multisig',
+  CLOSE_DAPP_STAKING_V3_ONBOARDING = 'closeDappStakingV3Onboarding',
+  DECOMMISSION = 'decommission',
 }
 
 // Memo: A helper function to return the account's history data that is stored in the browser
@@ -45,9 +46,9 @@ export const getAccountHistories = ({
   }
   */
   const data = histories ? JSON.parse(histories) : {};
-  if (data.hasOwnProperty(address)) {
+  if (hasProperty(data, address)) {
     const addressData = data[address];
-    if (addressData.hasOwnProperty(network)) {
+    if (hasProperty(addressData, network)) {
       return addressData[network];
     }
   }
@@ -78,7 +79,7 @@ export const updateAccountHistories = ({
   const historiesData = histories ? JSON.parse(histories) : {};
   const networkName = network === 'shibuya-testnet' ? 'shibuya' : network;
 
-  if (historiesData.hasOwnProperty(address)) {
+  if (hasProperty(historiesData, address)) {
     const addressData = historiesData[address];
     newDataObj = { ...historiesData, [address]: { ...addressData, [networkName]: txs } };
   } else {

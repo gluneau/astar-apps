@@ -15,8 +15,8 @@
         </div>
         <div class="row--stake">
           <astar-button
-            :disabled="isH160"
             class="btn-size--stake"
+            :disabled="isZkEvm || decommissionStarted"
             @click="goStakeLink(dapp.dapp.address)"
           >
             <span class="text--btn-stake">
@@ -42,11 +42,10 @@
   </div>
 </template>
 <script lang="ts">
-import { useAccount } from 'src/hooks';
+import { useAccount, useNetworkInfo, useDecommission } from 'src/hooks';
 import { networkParam, Path } from 'src/router/routes';
 import { defineComponent, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { useStore } from 'src/store';
 
 export default defineComponent({
   props: {
@@ -58,8 +57,8 @@ export default defineComponent({
   setup(props) {
     const router = useRouter();
     const { currentAccount } = useAccount();
-    const store = useStore();
-    const isH160 = computed<boolean>(() => store.getters['general/isH160Formatted']);
+    const { decommissionStarted } = useDecommission();
+    const { isZkEvm } = useNetworkInfo();
     const twitterUrl = `https://twitter.com/intent/tweet?text=Nominate and Stake with us on @AstarNetwork!&hashtags=dAppStaking,Build2Earn&url=${window.location.href}`;
 
     const goEditLink = (): void => {
@@ -80,9 +79,10 @@ export default defineComponent({
     return {
       isDisabledEditButton,
       goEditLink,
-      isH160,
       goStakeLink,
       twitterUrl,
+      isZkEvm,
+      decommissionStarted,
     };
   },
 });

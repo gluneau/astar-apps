@@ -37,7 +37,7 @@
               type="number"
               min="0"
               pattern="^[0-9]*(\.)?[0-9]*$"
-              placeholder="0.0"
+              placeholder="0"
               class="input--amount input--no-spin"
               @input="inputHandler"
             />
@@ -54,6 +54,21 @@
 
       <div class="warning">
         <li>{{ $t('dappStaking.unbondingEra', { unbondingPeriod }) }}</li>
+      </div>
+
+      <div
+        v-if="isBelowThanMinStaking"
+        class="row--box-error box--error"
+        data-testid="warning-unstake-all-balance"
+      >
+        <span class="color--white">
+          {{
+            $t('dappStaking.willUnstakeAll', {
+              minStakingAmount: $n(truncate(minStakingAmount)),
+              symbol: nativeTokenSymbol,
+            })
+          }}
+        </span>
       </div>
 
       <astar-button class="unbond-button" :disabled="!amount" @click="unbound()"
@@ -73,6 +88,7 @@ import SpeedConfiguration from 'src/components/common/SpeedConfiguration.vue';
 import ModalWrapper from 'src/components/common/ModalWrapper.vue';
 import { fadeDuration } from '@astar-network/astar-ui';
 import { wait } from '@astar-network/astar-sdk-core';
+import { useStore } from 'src/store';
 
 export default defineComponent({
   components: {
@@ -100,6 +116,17 @@ export default defineComponent({
     const nativeTokenImg = computed<string>(() =>
       getTokenImage({ isNativeToken: true, symbol: nativeTokenSymbol.value })
     );
+    const store = useStore();
+
+    const minStakingAmount = computed<number>(() => {
+      const amt = store.getters['dapps/getMinimumStakingAmount'];
+      return Number(ethers.utils.formatEther(amt));
+    });
+
+    const isBelowThanMinStaking = computed<boolean>(() => {
+      return minStakingAmount.value > Number(maxAmount.value) - Number(amount.value);
+    });
+
     const maxAmount = computed<string>(() => {
       if (!props.dapp?.yourStake) {
         return '0';
@@ -127,7 +154,8 @@ export default defineComponent({
 
     const unbound = async (): Promise<void> => {
       await closeModal();
-      await handleUnbound(props.dapp?.dappAddress, amount.value);
+      const unstakeAmount = isBelowThanMinStaking.value ? maxAmount.value : amount.value;
+      await handleUnbound(props.dapp?.dappAddress, unstakeAmount);
     };
 
     return {
@@ -138,6 +166,9 @@ export default defineComponent({
       selectedTip,
       nativeTipPrice,
       unbondingPeriod,
+      isBelowThanMinStaking,
+      minStakingAmount,
+      isClosingModal,
       setSelectedTip,
       close,
       toMaxAmount,
@@ -145,7 +176,6 @@ export default defineComponent({
       inputHandler,
       unbound,
       closeModal,
-      isClosingModal,
     };
   },
 });
@@ -207,9 +237,17 @@ export default defineComponent({
   padding: 8px;
   margin-top: 20px;
   margin-bottom: 40px;
+  margin-bottom: 20px;
   width: 344px;
   @media (min-width: $md) {
     width: 400px;
+  }
+}
+
+.box--error {
+  width: 344px !important;
+  @media (min-width: $md) {
+    width: 400px !important;
   }
 }
 
@@ -218,6 +256,7 @@ export default defineComponent({
   font-size: 22px;
   font-weight: 600;
   height: 44px;
+  margin-top: 20px;
   @media (min-width: $md) {
     width: 400px;
   }

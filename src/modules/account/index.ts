@@ -7,8 +7,6 @@ export interface SystemAccount extends Struct {
   data: {
     free: BN;
     reserved: BN;
-    miscFrozen: BN;
-    feeFrozen: BN;
     frozen: BN;
     flags: BN;
   };
@@ -18,6 +16,7 @@ export enum HistoryTxType {
   Transfer = 'Transfer',
   Xcm = 'XCM',
   Xvm = 'XVM Transfer',
+  ZK_ETHEREUM_BRIDGE = 'ZK Ethereum Bridge',
 }
 
 export interface TxHistory {

@@ -1,78 +1,121 @@
 <template>
-  <div v-if="!isLoading" class="wrapper--assets">
-    <div class="separator--top container--account">
-      <div class="separator" />
-    </div>
+  <div v-if="xcmAssets.assets.length > 0 || !isLoading" class="wrapper--assets">
     <div class="container--assets">
-      <div class="container--account">
-        <div class="title--account">
-          <span class="text--xl">
-            {{ $t(isH160 ? 'assets.astarEvmAccount' : 'assets.astarNativeAccount') }}
-          </span>
-        </div>
+      <div class="column--main">
+        <register-banner v-if="isDappStakingV3" />
         <account
           :ttl-erc20-amount="evmAssets.ttlEvmUsdAmount"
           :ttl-native-xcm-usd-amount="ttlNativeXcmUsdAmount"
           :is-loading-erc20-amount="isLoading"
           :is-loading-xcm-assets-amount="isLoadingXcmAssetsAmount"
         />
-      </div>
-      <div class="row--links">
-        <dynamic-links />
-      </div>
-      <div>
-        <div class="container--account">
-          <div class="separator" />
+
+        <anchor-links
+          v-if="isDappStakingV3 && !isZkEvm"
+          :native-section="nativeSection"
+          :staking-section="stakingSection"
+          :project-section="projectSection"
+          :assets-section="assetsSection"
+          :is-dapp-owner="isDappOwner"
+        />
+
+        <template v-if="isH160">
+          <div ref="nativeSection">
+            <evm-native-token class="container" />
+          </div>
+          <zk-astr v-if="isZkEvm" class="container" />
+        </template>
+        <template v-else>
+          <div ref="nativeSection">
+            <native-asset-list class="container" />
+          </div>
+        </template>
+
+        <template v-if="isDappStakingV3 && !isZkEvm">
+          <div ref="stakingSection">
+            <staking />
+          </div>
+        </template>
+
+        <template v-if="isDappStakingV3 && !isZkEvm && isDappOwner">
+          <div ref="projectSection">
+            <your-project :own-dapps="ownDapps" />
+          </div>
+        </template>
+
+        <div v-if="!isLoading" ref="assetsSection">
+          <template v-if="isH160">
+            <evm-asset-list :tokens="evmAssets.assets" class="container" />
+          </template>
+          <template v-else>
+            <!-- Memo: hide xvm panel because AA might replace it -->
+            <!-- <xvm-native-asset-list v-if="isSupportXvmTransfer" :xvm-assets="xvmAssets.xvmAssets" /> -->
+            <xcm-native-asset-list
+              v-if="isEnableXcm"
+              :xcm-assets="xcmAssets.assets"
+              class="container"
+            />
+          </template>
         </div>
-        <span class="title--assets text--xl">{{ $t('assets.assets') }}</span>
       </div>
-      <div class="container--asset-list">
-        <div v-if="isH160">
-          <evm-asset-list :tokens="evmAssets.assets" />
-        </div>
-        <div v-else class="container--assets">
-          <xvm-native-asset-list v-if="isSupportXvmTransfer" :xvm-assets="xvmAssets.xvmAssets" />
-          <xcm-native-asset-list v-if="isEnableXcm" :xcm-assets="xcmAssets.assets" />
-        </div>
+
+      <div class="column--links">
+        <side-ads />
+        <astar-domains />
       </div>
-    </div>
-    <div class="column--links">
-      <dynamic-links />
     </div>
   </div>
 </template>
 <script lang="ts">
-import Account from 'src/components/assets/Account.vue';
-import DynamicLinks from 'src/components/assets/DynamicLinks.vue';
-import EvmAssetList from 'src/components/assets/EvmAssetList.vue';
-import XcmNativeAssetList from 'src/components/assets/XcmNativeAssetList.vue';
-import XvmNativeAssetList from 'src/components/assets/XvmNativeAssetList.vue';
-import { endpointKey, providerEndpoints } from 'src/config/chainEndpoints';
-import { LOCAL_STORAGE } from 'src/config/localStorage';
 import { isValidEvmAddress } from '@astar-network/astar-sdk-core';
+import Account from 'src/components/assets/Account.vue';
+import AnchorLinks from 'src/components/assets/AnchorLinks.vue';
+import EvmAssetList from 'src/components/assets/EvmAssetList.vue';
+import EvmNativeToken from 'src/components/assets/EvmNativeToken.vue';
+import NativeAssetList from 'src/components/assets/NativeAssetList.vue';
+import SideAds from 'src/components/assets/SideAds.vue';
+import XcmNativeAssetList from 'src/components/assets/XcmNativeAssetList.vue';
+import YourProject from 'src/components/assets/YourProject.vue';
+import ZkAstr from 'src/components/assets/ZkAstr.vue';
+import AstarDomains from 'src/components/header/mobile/AstarDomains.vue';
+import { providerEndpoints } from 'src/config/chainEndpoints';
+import { LOCAL_STORAGE } from 'src/config/localStorage';
 import { useAccount, useBalance, useDispatchGetDapps, useNetworkInfo } from 'src/hooks';
+import { CombinedDappInfo, useDappStaking, useDapps } from 'src/staking-v3';
+import RegisterBanner from 'src/staking-v3/components/RegisterBanner.vue';
+import Staking from 'src/staking-v3/components/my-staking/Staking.vue';
 import { useStore } from 'src/store';
 import { EvmAssets, XcmAssets, XvmAssets } from 'src/store/assets/state';
 import { Asset } from 'src/v2/models';
-import { computed, defineComponent, ref, watch, watchEffect, onUnmounted } from 'vue';
+import { computed, defineComponent, onUnmounted, ref, watch, watchEffect } from 'vue';
 
 export default defineComponent({
   components: {
     Account,
-    DynamicLinks,
+    SideAds,
+    AstarDomains,
     EvmAssetList,
     XcmNativeAssetList,
-    XvmNativeAssetList,
+    YourProject,
+    Staking,
+    EvmNativeToken,
+    NativeAssetList,
+    ZkAstr,
+    AnchorLinks,
+    RegisterBanner,
   },
   setup() {
     const token = ref<Asset | null>(null);
     const isModalXcmBridge = ref<boolean>(false);
     const isModalXcmTransfer = ref<boolean>(false);
+    const { isDappStakingV3 } = useDappStaking();
 
     const store = useStore();
     const { currentAccount } = useAccount();
+
     const { accountData } = useBalance(currentAccount);
-    const { isMainnet, currentNetworkIdx, evmNetworkIdx, isSupportXvmTransfer } = useNetworkInfo();
+    const { isMainnet, currentNetworkIdx, evmNetworkIdx, isZkEvm, nativeTokenSymbol } =
+      useNetworkInfo();
     // Memo: load the dApps data in advance, so that users can access to dApp staging page smoothly
     useDispatchGetDapps();
 
@@ -81,7 +124,6 @@ export default defineComponent({
     });
     const isLoading = computed<boolean>(() => store.getters['general/isLoading']);
     const isH160 = computed(() => store.getters['general/isH160Formatted']);
-    const isShibuya = computed(() => currentNetworkIdx.value === endpointKey.SHIBUYA);
 
     const xcmAssets = computed<XcmAssets>(() => store.getters['assets/getAllAssets']);
     const xvmAssets = computed<XvmAssets>(() => store.getters['assets/getAllXvmAssets']);
@@ -152,7 +194,7 @@ export default defineComponent({
     watchEffect(handleImportingCustomToken);
 
     const isEnableXcm = computed(
-      () => !isShibuya.value && xcmAssets.value.assets && xcmAssets.value.assets.length > 0
+      () => !isZkEvm.value && xcmAssets.value.assets && xcmAssets.value.assets.length > 0
     );
 
     const handleEvmAssetLoader = (): void => {
@@ -169,6 +211,22 @@ export default defineComponent({
       window.removeEventListener(event, handler);
     });
 
+    const { allDapps } = useDapps();
+    const ownDapps = computed<CombinedDappInfo[]>(() => {
+      if (!allDapps.value) return [];
+      return allDapps.value.filter((dapp) => dapp.chain.owner === currentAccount.value);
+    });
+
+    const isDappOwner = computed<boolean>(() => {
+      if (ownDapps.value.length > 0) return true;
+      return false;
+    });
+
+    const nativeSection = ref<HTMLElement | null>(null);
+    const stakingSection = ref<HTMLElement | null>(null);
+    const projectSection = ref<HTMLElement | null>(null);
+    const assetsSection = ref<HTMLElement | null>(null);
+
     return {
       evmAssets,
       isLoadingXcmAssetsAmount,
@@ -182,7 +240,15 @@ export default defineComponent({
       accountData,
       isModalXcmBridge,
       isLoading,
-      isSupportXvmTransfer,
+      isDappStakingV3,
+      nativeTokenSymbol,
+      isZkEvm,
+      ownDapps,
+      isDappOwner,
+      nativeSection,
+      stakingSection,
+      projectSection,
+      assetsSection,
     };
   },
 });

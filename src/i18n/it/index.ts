@@ -71,7 +71,6 @@ export default {
     dappStaking: 'dApp Staking',
     staking: 'Staking',
     contract: 'Contratto',
-    plasmLockdrop: 'Plasm Lockdrop',
     closeSidebar: 'Chiudi barra laterale',
     twitter: 'Twitter',
     telegram: 'Telegram',
@@ -114,8 +113,8 @@ export default {
   wallet: {
     connectWallet: 'Connetti wallet',
     select: 'Seleziona un wallet per connetterti al portale',
-    nativeAccount: 'Account Nativi',
-    evmAccount: 'Account EVM',
+    nativeWallets: 'Account Nativi',
+    evmWallets: 'Account EVM',
     math: {
       supportsNetwork: 'Math Wallet supporta solo la rete Shiden',
       switchNetwork:
@@ -296,7 +295,7 @@ export default {
       requiredClaimFirst: 'Effettua il Claim prima di inviare la transazione',
       requiredClaimFirstCompounding:
         '{message} -Disabilita il compounding,fai il Claim delle ricompense e abilita nuovamente il compounding',
-      successfullyWithdrew: 'Saldo ritirato con successo',
+      successfullyWithdrawn: 'Saldo ritirato con successo',
       successfullySetRewardDest: 'Hai impostato con successo la destinazione delle reward',
     },
     error: {
@@ -313,7 +312,7 @@ export default {
     xvmAssets: 'Asset XVM ERC20',
     nativeAccount: 'Account Nativo',
     evmAccount: 'Account EVM',
-    switchToNative: 'Passa al Lockdrop',
+
     switchToEvm: 'Passa a EVM',
     totalBalance: 'Bilancio Totale',
     transfer: 'Trasferisci',
@@ -329,8 +328,6 @@ export default {
     yourEvmDeposit: 'Il tuo deposito EVM',
     yourVestingInfo: 'Informazioni Vesting',
     yourStaking: 'Il tuo Staking',
-    lockdropAccount: 'Account Lockdrop',
-    inLockdropAccount: 'Sei in un account Lockdrop',
     cantTransferToExcahges: 'Non puoi trasferire agli Exchange',
     noHash: 'La tua transazione non avrà un hash',
     addToWallet: 'Aggiungi al wallet',

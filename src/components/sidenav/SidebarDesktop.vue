@@ -1,5 +1,5 @@
 <template>
-  <div class="sidebar" :class="isDecentralized && 'sidebar--height-decentralized '">
+  <div class="sidebar">
     <div class="icon">
       <logo />
     </div>
@@ -22,7 +22,25 @@
         </router-link>
       </div>
       <div>
+        <button
+          v-if="isZkatana"
+          :disabled="true"
+          class="link--disabled"
+          :class="['link', $route.path.split('/')[2] === 'dashboard' ? 'activeLink' : '']"
+        >
+          <astar-icon-base
+            :class="['iconbase', isShiden ? 'shiden' : '']"
+            icon-color="#0085FF"
+            icon-name="dashboard"
+          >
+            <astar-icon-dashboard />
+          </astar-icon-base>
+          <div class="row--item">
+            <astar-text type="H4">{{ $t('dashboard.dashboard') }}</astar-text>
+          </div>
+        </button>
         <router-link
+          v-else
           :to="RoutePath.Dashboard"
           :class="['link', $route.path.split('/')[2] === 'dashboard' ? 'activeLink' : '']"
         >
@@ -42,6 +60,7 @@
         <router-link
           v-if="network.isStoreEnabled"
           :to="RoutePath.DappStaking"
+          data-testid="dapp-staking"
           :class="['link', $route.path.split('/')[2] === 'dapp-staking' ? 'activeLink' : '']"
         >
           <astar-icon-base
@@ -55,30 +74,23 @@
             <astar-text type="H4">{{ $t('common.dappStaking') }}</astar-text>
           </div>
         </router-link>
-        <div v-else class="dummy-row" />
       </div>
-      <div @mouseover="hoverNFT = true" @mouseleave="hoverNFT = false">
+      <div>
         <router-link
-          to="#"
-          :class="['link', $route.path.split('/')[2] === 'astar-nft' ? 'activeLink' : '']"
+          :to="RoutePath.Bridge"
+          :class="['link', $route.path.split('/')[2] === 'bridge' ? 'activeLink' : '']"
         >
           <astar-icon-base
-            :class="['icon-add', isShiden ? 'shiden' : '']"
-            stroke="currentColor"
-            icon-name="staking"
+            :class="['iconbase', isShiden ? 'shiden' : '']"
+            icon-color="currentColor"
+            icon-name="bridge"
           >
-            <icon-side-nft />
+            <astar-icon-bridge />
           </astar-icon-base>
           <div class="row--item">
-            <astar-text type="H4">NFT</astar-text>
+            <astar-text type="H4">{{ $t('assets.bridge') }}</astar-text>
           </div>
         </router-link>
-        <balloon
-          class="balloon"
-          :is-balloon="hoverNFT"
-          :is-balloon-closing="!hoverNFT"
-          :text="$t('sidenavi.comingsoon')"
-        />
       </div>
       <div>
         <a :class="['link']" href="https://astar.network/community/ecosystem/" target="_blank">
@@ -114,28 +126,24 @@
 <script lang="ts">
 import { defineComponent, ref, computed } from 'vue';
 import { useStore } from 'src/store';
-import { useSidebar } from 'src/hooks';
+import { useNetworkInfo, useSidebar } from 'src/hooks';
 import { providerEndpoints, endpointKey } from 'src/config/chainEndpoints';
 import Logo from '../common/Logo.vue';
 import { useRouter } from 'vue-router';
 import { Path as RoutePath } from 'src/router/routes';
 import IconEcosystem from './components/IconEcosystem.vue';
-import Balloon from './components/Balloon.vue';
 import SidebarOptionDesktop from './SidebarOptionDesktop.vue';
-import { decentralizedOrigin } from 'src/links';
 import { socialUrl } from 'src/links';
-import IconSideNft from './components/IconSideNFT.vue';
 
 export default defineComponent({
   components: {
     Logo,
     IconEcosystem,
-    Balloon,
     SidebarOptionDesktop,
-    IconSideNft,
   },
   setup() {
     const { isOpen } = useSidebar();
+    const { isZkEvm, isZkatana } = useNetworkInfo();
 
     const store = useStore();
     const currentNetworkIdx = computed<number>(() => store.getters['general/networkIdx']);
@@ -146,11 +154,6 @@ export default defineComponent({
     const router = useRouter();
     const path = computed(() => router.currentRoute.value.path.split('/')[2]);
 
-    const hoverNFT = ref<boolean>(false);
-    const isDecentralized = computed<boolean>(() => {
-      return window.location.origin === decentralizedOrigin;
-    });
-
     const getIndicatorClass = (path: string): string => {
       switch (path) {
         case 'dashboard':
@@ -159,6 +162,8 @@ export default defineComponent({
           return 'menu__assets';
         case 'dapp-staking':
           return 'menu__staking';
+        case 'bridge':
+          return 'menu__bridge';
         default:
           return 'menu__staking';
       }
@@ -169,12 +174,12 @@ export default defineComponent({
       network,
       isShiden,
       getIndicatorClass,
+      isZkEvm,
       router,
       path,
       RoutePath,
-      hoverNFT,
-      isDecentralized,
       socialUrl,
+      isZkatana,
     };
   },
 });

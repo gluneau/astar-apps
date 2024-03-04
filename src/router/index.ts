@@ -7,7 +7,6 @@ import {
 } from 'vue-router';
 import { StateInterface } from 'src/store';
 import routes from 'src/router/routes';
-
 export { Path } from 'src/router/routes';
 export { getHeaderName, buildTransferPageLink } from 'src/router/utils';
 

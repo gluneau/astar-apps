@@ -1,3 +1,4 @@
+import { clickDisclaimerButton } from 'src/modules/playwright';
 import { BrowserContext, Page, expect } from '@playwright/test';
 import { test } from '../fixtures';
 import {
@@ -10,6 +11,7 @@ import {
 } from '../common';
 import { ApiPromise } from '@polkadot/api';
 import { getApi } from '../common-api';
+import { wait } from '@astar-network/astar-sdk-core';
 
 let api: ApiPromise;
 test.beforeAll(async () => {
@@ -23,11 +25,12 @@ test.afterAll(async () => {
 test.beforeEach(async ({ page, context }: { page: Page; context: BrowserContext }) => {
   await page.goto('/astar/dapp-staking/discover');
 
-  // Close cookies popup
-  await page.getByRole('button', { name: 'Accept' }).click();
-
-  const polkadotButton = page.getByText('Polkadot.js');
-  await polkadotButton.click();
+  // Close disclaimer popup
+  await clickDisclaimerButton(page);
+  const walletTab = page.getByTestId('select-wallet-tab');
+  await walletTab.click();
+  const polkadotJsButton = page.getByText('Polkadot.js');
+  await polkadotJsButton.click();
 
   await closePolkadotWelcomePopup(context);
   await createAccount(page, BOB_ACCOUNT_SEED, BOB_ACCOUNT_NAME);

@@ -1,10 +1,16 @@
 import { expect, test } from '@playwright/test';
-import { checkIsLightClient } from 'src/config/api/polkadot/connectApi';
 import { endpointKey } from 'src/config/chainEndpoints';
 import { providerEndpoints } from 'src/config/chainEndpoints';
+import { checkIsLightClient } from '../common-api';
+import { clickDisclaimerButton } from 'src/modules/playwright';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/astar/dashboard');
+  await clickDisclaimerButton(page);
+  const walletTab = page.getByTestId('select-wallet-tab');
+  await walletTab.click();
+  const polkadotJsButton = page.getByText('Polkadot.js');
+  await polkadotJsButton.click();
 });
 
 test.describe('on dashboard screen', () => {
@@ -20,9 +26,6 @@ test.describe('on dashboard screen', () => {
     await expect(widget.getByText('18')).toBeVisible();
   });
   test('Endpoint has been selected randomly', async ({ page }) => {
-    const isAppliedRandomEndpoint = await page.evaluate(() => {
-      return localStorage.getItem('isAppliedRandomEndpoint');
-    });
     const selectedEndpointObj: string = (await page.evaluate(() => {
       return localStorage.getItem('selectedEndpoint');
     })) as string;
@@ -32,8 +35,17 @@ test.describe('on dashboard screen', () => {
     );
     const isLightClient = checkIsLightClient(selectedEndpoint);
 
-    expect(isAppliedRandomEndpoint).toBe('true');
     expect(isSomeOfAstarEndpoints).toBe(true);
     expect(isLightClient).toBe(false);
+  });
+
+  test('display network statuses panel', async ({ page }) => {
+    const ui = page.getByTestId('network-statuses');
+    await expect(ui).toBeVisible();
+  });
+
+  test('display collators panel', async ({ page }) => {
+    const ui = page.getByTestId('collators-panel');
+    await expect(ui).toBeVisible();
   });
 });

@@ -5,11 +5,11 @@
       <register />
       <dynamic-ads-area />
 
-      <div class="container--divider">
+      <div v-if="!isZkEvm" class="container--divider">
         <div class="divider" />
       </div>
-      <my-staking />
-      <div class="container--divider">
+      <my-staking v-if="!isZkEvm" />
+      <div v-if="!isZkEvm" class="container--divider">
         <div class="divider" />
       </div>
       <on-chain-data />
@@ -23,14 +23,22 @@
       <dapp-list category="Tooling" />
       <dapp-list category="Utility" />
       <dapp-list category="Others" />
+      <dapp-list category="unstoppable-grants" />
     </div>
+
+    <Teleport to="#staking-top-bg">
+      <div
+        class="dapps-staking-bg"
+        :style="{ backgroundImage: `url(${isDarkTheme ? bg_img.dark : bg_img.light})` }"
+      />
+    </Teleport>
   </div>
   <div v-else />
 </template>
 
 <script lang="ts">
 import { useMeta } from 'quasar';
-import { useDispatchGetDapps, usePageReady } from 'src/hooks';
+import { useDispatchGetDapps, useNetworkInfo, usePageReady } from 'src/hooks';
 import { useStore } from 'src/store';
 import { computed, defineComponent, watch, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -58,10 +66,10 @@ export default defineComponent({
     useMeta(generateMeta(Path.Discover));
     const store = useStore();
     const { isReady } = usePageReady();
+    const { t } = useI18n();
     useDispatchGetDapps();
 
-    const { t } = useI18n();
-    const isH160 = computed<boolean>(() => store.getters['general/isH160Formatted']);
+    const { isZkEvm } = useNetworkInfo();
     const dapps = computed(() => store.getters['dapps/getAllDapps']);
 
     const handlePageLoading = (): void => {
@@ -70,11 +78,11 @@ export default defineComponent({
     };
 
     watch(
-      [isH160],
+      [isZkEvm],
       () => {
-        if (isH160.value) {
+        if (isZkEvm.value) {
           store.dispatch('general/showAlertMsg', {
-            msg: t('dappStaking.error.onlySupportsSubstrate'),
+            msg: t('dappStaking.error.notSupportZkEvm'),
             alertType: 'error',
           });
         }
@@ -94,7 +102,13 @@ export default defineComponent({
       store.dispatch('dapps/getTvl');
     });
 
-    return { isReady };
+    const isDarkTheme = computed<boolean>(() => store.getters['general/theme'] === 'DARK');
+    const bg_img = {
+      light: require('/src/assets/img/dapps_staking_bg_light.webp'),
+      dark: require('/src/assets/img/dapps_staking_bg_dark.webp'),
+    };
+
+    return { isReady, isZkEvm, isDarkTheme, bg_img };
   },
 });
 </script>
@@ -105,11 +119,13 @@ export default defineComponent({
 .extra-wrapper {
   max-width: $container-max-width;
   margin: 0 auto;
+  z-index: 1;
+  position: relative;
 }
 
 .container--main {
   width: 100%;
-  padding: 0px 0px 24px 0px;
+  padding: 48px 0 24px 0px;
   margin: 0 auto;
 
   @media (min-width: $md) {
@@ -118,9 +134,6 @@ export default defineComponent({
 
   @media (min-width: $widthCardLineUp) {
     max-width: 100%;
-  }
-  @media (min-width: $lg) {
-    margin-top: 50px;
   }
 }
 

@@ -40,7 +40,7 @@
           />
           <div v-if="isH160" class="row--withdrawal-address-format">
             <a
-              href="https://docs.astar.network/docs/xcm/faq/#q-where-can-i-find-other-chains-addresses"
+              href="https://docs.astar.network/docs/learn/interoperability/faq#q-where-can-i-find-other-chains-addresses"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -103,7 +103,7 @@
                 type="number"
                 min="0"
                 pattern="^[0-9]*(\.)?[0-9]*$"
-                placeholder="0.0"
+                placeholder="0"
                 class="input--amount input--no-spin"
                 @input="inputHandler"
               />

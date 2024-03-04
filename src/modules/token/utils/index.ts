@@ -5,18 +5,25 @@ import { LOCAL_STORAGE } from 'src/config/localStorage';
 import { Erc20Token, registeredErc20Tokens, tokenImageMap } from 'src/modules/token';
 import { xcmToken } from 'src/modules/xcm';
 import { Asset } from 'src/v2/models';
+import { hasProperty } from '@astar-network/astar-sdk-core';
 
 export const getTokenImage = ({
   isNativeToken,
   symbol,
   iconUrl,
+  isZkEvm,
 }: {
   isNativeToken: boolean;
   symbol: string;
   iconUrl?: string;
+  isZkEvm?: boolean;
 }): string => {
   if (isNativeToken) {
-    return symbol === 'SDN' ? 'icons/sdn-token.png' : 'icons/astar.png';
+    return isZkEvm
+      ? require('assets/img/ethereum.png')
+      : symbol === 'SDN'
+      ? 'icons/sdn-token.png'
+      : 'icons/astar.png';
   } else {
     return iconUrl || 'custom-token';
   }
@@ -43,8 +50,10 @@ export const getRegisteredERC20Token = ({
   const storedTokens = getStoredERC20Tokens().map((it: Erc20Token) => {
     return {
       ...it,
-      image: tokenImageMap.hasOwnProperty(it.symbol)
+      image: hasProperty(tokenImageMap, it.symbol)
         ? tokenImageMap[it.symbol as keyof typeof tokenImageMap]
+        : it.image
+        ? it.image
         : 'custom-token',
     };
   });
@@ -58,6 +67,15 @@ export const getStoredERC20Tokens = (): Erc20Token[] => {
 
 export const storeImportedERC20Token = (token: Erc20Token) => {
   const tokens = getStoredERC20Tokens();
+  if (
+    tokens.some(
+      (it) =>
+        it.address.toLowerCase() === token.address.toLowerCase() &&
+        it.srcChainId === token.srcChainId
+    )
+  ) {
+    return;
+  }
   tokens.push(token);
   localStorage.setItem(LOCAL_STORAGE.EVM_TOKEN_IMPORTS, JSON.stringify(tokens));
 };

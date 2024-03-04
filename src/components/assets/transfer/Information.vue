@@ -29,7 +29,7 @@
         </a>
       </div>
     </div>
-    <div v-if="!isMultisig" id="history" class="container--information">
+    <div v-if="isHistory && !isMultisig" id="history" class="container--information">
       <div class="row--title">
         <astar-icon-history size="20" />
         <span>{{ $t('assets.transferPage.recentHistory') }}</span>
@@ -88,6 +88,7 @@ import {
   getTxHistories,
   hotTopics,
   RecentHistory,
+  faqZkEthereumBridge,
 } from 'src/modules/information';
 import { getXvmAssetsTransferHistories } from 'src/modules/information/recent-history';
 import { useStore } from 'src/store';
@@ -100,12 +101,17 @@ export default defineComponent({
       type: String as PropType<HistoryTxType>,
       required: true,
     },
+    isHistory: {
+      type: Boolean,
+      required: false,
+      default: true,
+    },
   },
   setup(props) {
     const store = useStore();
     const txHistories = ref<RecentHistory[]>([]);
     const isLoadingTxHistories = ref<boolean>(true);
-    const { currentAccount, isMultisig } = useAccount();
+    const { senderSs58Account, isMultisig } = useAccount();
     const { currentNetworkName } = useNetworkInfo();
 
     const isH160 = computed<boolean>(() => store.getters['general/isH160Formatted']);
@@ -116,22 +122,25 @@ export default defineComponent({
       if (props.transferType === HistoryTxType.Xcm) {
         return isH160.value ? faqH160XcmBridge : faqSs58XcmBridge;
       }
+      if (props.transferType === HistoryTxType.ZK_ETHEREUM_BRIDGE) {
+        return faqZkEthereumBridge;
+      }
       return faqSs58XvmTransfer;
     });
 
     const setTxHistories = async (): Promise<void> => {
-      if (!currentAccount.value || !currentNetworkName.value) return;
+      if (!senderSs58Account.value || !currentNetworkName.value) return;
       try {
         isLoadingTxHistories.value = true;
         const network = currentNetworkName.value.toLowerCase();
         if (props.transferType === HistoryTxType.Xvm) {
           txHistories.value = await getXvmAssetsTransferHistories({
-            address: currentAccount.value,
+            address: senderSs58Account.value,
             network,
           });
         } else {
           txHistories.value = await getTxHistories({
-            address: currentAccount.value,
+            address: senderSs58Account.value,
             network,
           });
         }

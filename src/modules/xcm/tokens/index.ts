@@ -70,7 +70,7 @@ export const xcmToken = {
       originAssetId: '1984',
       logo: require('/src/assets/img/token/usdt.png'),
       isXcmCompatible: true,
-      originChain: Chain.STATEMINT,
+      originChain: Chain.ASSET_HUB,
       minBridgeAmount: '1.5',
     },
     {
@@ -143,6 +143,16 @@ export const xcmToken = {
       originChain: Chain.UNIQUE,
       minBridgeAmount: '0.1',
     },
+    {
+      symbol: 'vASTR',
+      isNativeToken: false,
+      assetId: '18446744073709551632',
+      originAssetId: 'vASTR',
+      logo: require('/src/assets/img/token/vastr.png'),
+      isXcmCompatible: true,
+      originChain: Chain.BIFROST_POLKADOT,
+      minBridgeAmount: '0.1',
+    },
   ],
   [endpointKey.SHIDEN]: [
     {
@@ -203,7 +213,7 @@ export const xcmToken = {
       originAssetId: '1984',
       logo: require('/src/assets/img/token/usdt.png'),
       isXcmCompatible: true,
-      originChain: Chain.STATEMINE,
+      originChain: Chain.ASSET_HUB_KUSAMA,
       minBridgeAmount: '0.1',
     },
     {
@@ -271,6 +281,8 @@ export const xcmToken = {
   [endpointKey.LOCAL]: [],
   [endpointKey.CUSTOM]: [],
   [endpointKey.ROCSTAR]: [],
+  [endpointKey.ASTAR_ZKEVM]: [],
+  [endpointKey.ZKATANA]: [],
 };
 
 // Memo: placeholder for assetId of ASTR/SDN/SBY
@@ -314,8 +326,22 @@ export const generateAstarNativeTokenObject = (symbol: ASTAR_NATIVE_TOKEN) => {
 };
 
 export const generateNativeAsset = (symbol: ASTAR_NATIVE_TOKEN): Asset => {
-  const name = symbol === 'ASTR' ? 'Astar' : symbol === 'SDN' ? 'Shiden' : 'Shibuya';
-  const tokenImage = symbol === 'ASTR' ? ASTR.logo : symbol === 'SDN' ? SDN.logo : SBY.logo;
+  const name =
+    symbol === 'ASTR'
+      ? 'Astar'
+      : symbol === 'SDN'
+      ? 'Shiden'
+      : symbol === 'ETH'
+      ? 'Ethereum'
+      : 'Shibuya';
+  const tokenImage =
+    symbol === 'ASTR'
+      ? ASTR.logo
+      : symbol === 'SDN'
+      ? SDN.logo
+      : symbol === 'ETH'
+      ? ETH.logo
+      : SBY.logo;
   const mappedERC20Addr = astarNativeTokenErcAddr;
   const metadata = {
     decimals: ASTAR_DECIMALS,
@@ -400,12 +426,23 @@ export const ASTR: XcmTokenInformation = {
 };
 
 export const SBY: XcmTokenInformation = {
-  symbol: 'ASTR',
+  symbol: 'SBY',
   isNativeToken: true,
   assetId: idAstarNativeToken,
   originAssetId: 'SBY',
   logo: require('src/assets/img/token/astr.png'),
   isXcmCompatible: true,
+  originChain: 'Shibuya',
+  minBridgeAmount: '0.1',
+};
+
+export const ETH: XcmTokenInformation = {
+  symbol: 'ETH',
+  isNativeToken: true,
+  assetId: idAstarNativeToken,
+  originAssetId: 'ETH',
+  logo: require('src/assets/img/ethereum.png'),
+  isXcmCompatible: false,
   originChain: 'Shibuya',
   minBridgeAmount: '0.1',
 };

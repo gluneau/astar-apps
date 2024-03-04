@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { checkPolicyInLocalStorage, checkInjectedWeb3 } from 'src/modules/playwright';
+import { clickDisclaimerButton, checkInjectedWeb3 } from 'src/modules/playwright';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/astar/dapp-staking/discover');
@@ -15,25 +15,6 @@ test.describe('init screen', () => {
     const closeButton = page.locator('.modal-close');
     await closeButton.click();
     await expect(walletWrapper).toBeHidden();
-  });
-  test('should private policy is opened unless accept the policy', async ({ page }) => {
-    await checkPolicyInLocalStorage(page);
-
-    const privatePolicy = page
-      .getByRole('alert')
-      .getByRole('link', { name: 'privacy policy page.' });
-    await expect(privatePolicy).toBeVisible();
-  });
-
-  test('should hide the private policy after accept the policy', async ({ page }) => {
-    await checkPolicyInLocalStorage(page);
-
-    const privatePolicy = page
-      .getByRole('alert')
-      .getByRole('link', { name: 'privacy policy page.' });
-    await expect(privatePolicy).toBeVisible();
-    await page.click('button:has-text("Accept")');
-    await expect(privatePolicy).not.toBeVisible();
   });
 
   test('should display the connect button', async ({ page }) => {
@@ -58,6 +39,7 @@ test.describe('on dapp staking screen', () => {
   });
 
   test('should clickable the banner after loading is complete', async ({ page }) => {
+    await clickDisclaimerButton(page);
     const closeButton = page.locator('.modal-close');
     await closeButton.click();
     const bannerCard = page.locator('.wrapper--banners .card:first-child');
@@ -67,6 +49,7 @@ test.describe('on dapp staking screen', () => {
   });
 
   test('should redirect to dapp page when click the dapp card', async ({ page }) => {
+    await clickDisclaimerButton(page);
     const closeButton = page.locator('.modal-close');
     await closeButton.click();
     await page.waitForSelector('.loader', { state: 'hidden' });
@@ -77,6 +60,7 @@ test.describe('on dapp staking screen', () => {
   });
 
   test('should display staking button when over the dapp card', async ({ page }) => {
+    await clickDisclaimerButton(page);
     const closeButton = page.locator('.modal-close');
     await closeButton.click();
     await page.waitForSelector('.loader', { state: 'hidden' });
@@ -88,6 +72,7 @@ test.describe('on dapp staking screen', () => {
   });
 
   test('should clickable item on the on chain data after loading is complete', async ({ page }) => {
+    await clickDisclaimerButton(page);
     const closeButton = page.locator('.modal-close');
     await closeButton.click();
     await page.waitForSelector('.loader', { state: 'hidden' });

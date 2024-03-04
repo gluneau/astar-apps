@@ -8,11 +8,15 @@ export const getHeaderName = (path: string): string => {
   } else if (path.includes('transfer')) {
     return 'Transfer Assets';
   } else if (path.includes('assets')) {
-    return 'Assets';
+    return 'Your Assets';
   } else if (path.includes('stake')) {
     return 'Stake';
+  } else if (path.includes('dapp-staking-v3')) {
+    return 'dApp Staking v3';
   } else if (path.includes('dapp-staking')) {
     return 'dApp Staking';
+  } else if (path.includes('bridge')) {
+    return 'Bridge';
   }
   return '';
 };
@@ -20,6 +24,10 @@ export const getHeaderName = (path: string): string => {
 export const buildTransferPageLink = (symbol: string): string => {
   const base = networkParam + Path.Assets + Path.Transfer;
   return `${base}?token=${symbol.toLowerCase()}&mode=local`;
+};
+
+export const buildEthereumBridgePageLink = (): string => {
+  return networkParam + Path.Bridge + Path.Ethereum;
 };
 
 export const buildXvmTransferPageLink = (symbol: string): string => {
@@ -42,6 +50,11 @@ export const buildNetworkUrl = (network: string) => {
     .slice(0, hrefArray.length)
     .map((it: string, index: number) => (index === networkIndex ? network : it))
     .join('/');
+
+  // Memo: `window.open(url, '_self')` won't work with `#`
+  if (url.includes('#staking')) {
+    return url.replace('#staking', '');
+  }
 
   return url;
 };

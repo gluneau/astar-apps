@@ -45,18 +45,17 @@ import ModalSelectFunds from './ModalSelectFunds.vue';
 import SelectFunds from './SelectFunds.vue';
 import StakeForm from './StakeForm.vue';
 import StakeInformation from './StakeInformation.vue';
-// import StakeInformation from 'src/components/dapp-staking/stake-manage/StakeInformation.vue';
-import { WalletModalOption } from 'src/config/wallets';
 import {
   useBreakpoints,
   useDappRedirect,
   useDispatchGetDapps,
   useStake,
   useStakingList,
+  useDecommission,
 } from 'src/hooks';
+import { useDappStakingNavigation } from 'src/staking-v3';
 import { wait } from '@astar-network/astar-sdk-core';
 import { Path } from 'src/router';
-import { useStore } from 'src/store';
 import { DappCombinedInfo } from 'src/v2/models';
 import { computed, defineComponent, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
@@ -81,12 +80,11 @@ export default defineComponent({
     useDispatchGetDapps();
     const { setAddressTransferFrom, formattedTransferFrom, currentAccount, handleStake } =
       useStake();
-
-    const store = useStore();
     const { dapps, stakingList } = useStakingList();
+    const { decommissionStarted } = useDecommission();
+    const { navigateToHome } = useDappStakingNavigation();
     const isHighlightRightUi = computed<boolean>(() => rightUi.value !== 'information');
     const dappAddress = computed<string>(() => route.query.dapp as string);
-    const isH160 = computed<boolean>(() => store.getters['general/isH160Formatted']);
 
     const handleModalSelectFunds = ({ isOpen }: { isOpen: boolean }): void => {
       isModalSelectFunds.value = isOpen;
@@ -132,23 +130,10 @@ export default defineComponent({
     };
 
     watch(
-      [currentAccount, dapp],
-      async () => {
-        if (!dapp.value) return;
-        // Memo: to avoid opening accounts drawer after changed account
-        await wait(2000);
-        if (!currentAccount.value) {
-          window.dispatchEvent(new CustomEvent(WalletModalOption.SelectWallet));
-        }
-      },
-      { immediate: true }
-    );
-
-    watch(
-      [isH160],
+      [decommissionStarted],
       () => {
-        if (isH160.value) {
-          window.dispatchEvent(new CustomEvent(WalletModalOption.SelectWallet));
+        if (decommissionStarted.value) {
+          navigateToHome();
         }
       },
       { immediate: true }
@@ -164,6 +149,7 @@ export default defineComponent({
       stakingList,
       isModalSelectFunds,
       dappAddress,
+      decommissionStarted,
       handleSetAddressTransferFrom,
       setRightUi,
       cancelHighlight,

@@ -55,7 +55,7 @@
               type="number"
               min="0"
               pattern="^[0-9]*(\.)?[0-9]*$"
-              placeholder="0.0"
+              placeholder="0"
               class="input--amount input--no-spin"
               @input="inputHandler"
             />
@@ -63,8 +63,9 @@
         </div>
       </div>
 
-      <div class="separator" />
+      <div v-if="isEnableSpeedConfiguration" class="separator" />
       <speed-configuration
+        v-if="isEnableSpeedConfiguration"
         :gas-cost="nativeTipPrice"
         :selected-gas="selectedTip"
         :set-selected-gas="setSelectedTip"
@@ -82,17 +83,15 @@
       <div v-if="warningMsg && currentAccount" class="row--box-error">
         <span class="color--white"> {{ $t(warningMsg) }}</span>
       </div>
-      <div class="wrapper__row--button" :class="!errMsg && 'btn-margin-adjuster'">
-        <astar-button
-          class="btn-size--confirm"
-          :disabled="!!errMsg || !Number(amount)"
-          @click="handleStake({ amount, targetContractId: dapp.dapp.address })"
-        >
-          <span class="text--btn-confirm">
-            {{ $t('confirm') }}
-          </span>
-        </astar-button>
-      </div>
+      <astar-button
+        class="btn-size--confirm"
+        :disabled="!!errMsg || !Number(amount)"
+        @click="handleStake({ amount, targetContractId: dapp.dapp.address })"
+      >
+        <span class="text--btn-confirm">
+          {{ $t('confirm') }}
+        </span>
+      </astar-button>
     </div>
   </div>
 </template>
@@ -108,6 +107,7 @@ import {
   useWalletIcon,
 } from 'src/hooks';
 import { getTokenImage } from 'src/modules/token';
+import { useStore } from 'src/store';
 import { computed, defineComponent, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -144,7 +144,8 @@ export default defineComponent({
     const nativeTokenImg = computed<string>(() =>
       getTokenImage({ isNativeToken: true, symbol: nativeTokenSymbol.value })
     );
-    const { selectedTip, nativeTipPrice, setSelectedTip } = useGasPrice();
+    const { selectedTip, nativeTipPrice, setSelectedTip, isEnableSpeedConfiguration } =
+      useGasPrice();
 
     // MEMO: it leave 10ASTR in the account so it will keep the balance for longer period.
     const leaveAmountNum = computed<number>(() => {
@@ -261,6 +262,7 @@ export default defineComponent({
       maxAmount,
       warningMinAmtMsg,
       warningMsg,
+      isEnableSpeedConfiguration,
       setSelectedTip,
       toMaxAmount,
       getShortenAddress,

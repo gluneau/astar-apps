@@ -13,6 +13,7 @@ const BNC = { Native: 'BNC' };
 const vDOT = { VToken2: 0 };
 const vKSM = { VToken: 'KSM' };
 const ASTR = { Token2: 3 };
+const vASTR = { vToken2: 3 };
 const SDN = { Token2: 3 };
 
 /**
@@ -34,7 +35,8 @@ export class BifrostXcmRepository extends XcmRepository {
     to: XcmChain,
     recipientAddress: string,
     token: Asset,
-    amount: BN
+    amount: BN,
+    endpoint: string
   ): Promise<ExtrinsicPayload> {
     if (!to.parachainId) {
       throw `Parachain id for ${to.name} is not defined`;
@@ -48,6 +50,8 @@ export class BifrostXcmRepository extends XcmRepository {
       tokenData = vKSM;
     } else if (token.originAssetId == 'ASTR') {
       tokenData = ASTR;
+    } else if (token.originAssetId == 'vASTR') {
+      tokenData = vASTR;
     } else if (token.originAssetId == 'SDN') {
       tokenData = SDN;
     } else {
@@ -82,6 +86,7 @@ export class BifrostXcmRepository extends XcmRepository {
 
     return await this.buildTxCall(
       from,
+      endpoint,
       'xTokens',
       'transfer',
       tokenData,
@@ -95,12 +100,13 @@ export class BifrostXcmRepository extends XcmRepository {
     address: string,
     chain: XcmChain,
     token: Asset,
-    isNativeToken: boolean
+    isNativeToken: boolean,
+    endpoint: string
   ): Promise<string> {
-    const api = await this.apiFactory.get(chain.endpoint);
+    const api = await this.apiFactory.get(endpoint);
     try {
       if (token.originAssetId == 'BNC') {
-        return (await this.getNativeBalance(address, chain)).toString();
+        return (await this.getNativeBalance(address, chain, endpoint)).toString();
       } else if (token.originAssetId == 'vDOT') {
         const bal = await api.query.tokens.accounts<TokensAccounts>(address, vDOT);
         return bal.free.toString();
@@ -109,6 +115,9 @@ export class BifrostXcmRepository extends XcmRepository {
         return bal.free.toString();
       } else if (token.originAssetId == 'ASTR') {
         const bal = await api.query.tokens.accounts<TokensAccounts>(address, ASTR);
+        return bal.free.toString();
+      } else if (token.originAssetId == 'vASTR') {
+        const bal = await api.query.tokens.accounts<TokensAccounts>(address, vASTR);
         return bal.free.toString();
       } else if (token.originAssetId == 'SDN') {
         const bal = await api.query.tokens.accounts<TokensAccounts>(address, SDN);

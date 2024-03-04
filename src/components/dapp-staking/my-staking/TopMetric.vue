@@ -1,8 +1,5 @@
 <template>
-  <div
-    class="panel"
-    :style="`background-image: url('${isShiden ? hero_img.shiden_hero : hero_img.astar_hero}');`"
-  >
+  <div class="panel">
     <div class="wrapper--title">
       <div class="txt--title animate__animated animate__zoomInRight">
         {{ $t('topMetric.build2earn') }}
@@ -11,92 +8,100 @@
         {{ $t('topMetric.wayOfStaking') }}
       </div>
     </div>
+
     <div class="wrapper--cards">
-      <div class="card">
-        <p>
-          {{ $t('topMetric.tvlInDapps') }}
-        </p>
-        <div class="row--data">
-          <div v-if="!tvl" class="loading">
-            <q-skeleton type="rect" animation="fade" />
-          </div>
-          <div v-else class="column--tvl">
-            <div class="txt--tvl">
-              {{ formatNumber(tvl.tvlDefaultUnit, 2) }} {{ nativeTokenSymbol }}
+      <div class="cards">
+        <div class="card">
+          <p>
+            {{ $t('topMetric.tvlInDapps') }}
+          </p>
+          <div class="row--data">
+            <div v-if="!tvl" class="loading">
+              <q-skeleton type="rect" animation="fade" />
             </div>
-            <div>(${{ formatNumber(tvl.tvlUsd, 1) }})</div>
-          </div>
-        </div>
-      </div>
-      <div class="card">
-        <p>
-          {{ $t('topMetric.stakersRewards') }}
-        </p>
-        <div class="row--data">
-          <div v-if="!percentage" class="loading">
-            <q-skeleton type="rect" animation="fade" />
-          </div>
-          <div v-else class="value">
-            <div class="column--apr-apy">
-              <div :class="isApr ? 'button--active' : 'button--not-active'" @click="isApr = true">
-                <span> {{ $t('topMetric.apr') }}</span>
+            <div v-else class="column--tvl">
+              <div class="txt--tvl">
+                {{ formatNumber(tvl.tvlDefaultUnit, 2) }} {{ nativeTokenSymbol }}
               </div>
-              <div :class="!isApr ? 'button--active' : 'button--not-active'" @click="isApr = false">
-                <span> {{ $t('topMetric.apy') }}</span>
-              </div>
-            </div>
-            <div>
-              <span>{{ percentage }}%</span>
+              <div>(${{ formatNumber(tvl.tvlUsd, 1) }})</div>
             </div>
           </div>
         </div>
-      </div>
-      <div class="card">
-        <p>
-          {{ $t('topMetric.currentEra') }}
-        </p>
-        <div class="row--data">
-          <div v-if="!currentEra" class="loading">
-            <q-skeleton type="rect" animation="fade" />
-          </div>
-          <div v-else class="value">
-            <div class="row--era-info">
-              <div class="column--era-info">
-                <div>{{ currentEra.toString() }}</div>
-                <div v-if="etaNextEra" class="text--eta-next-era">
-                  {{ $t('topMetric.eraInfo', { eta: etaNextEra }) }}
+        <div class="card">
+          <p>
+            {{ $t('topMetric.stakersRewards') }}
+          </p>
+          <div class="row--data">
+            <div v-if="!percentage" class="loading">
+              <q-skeleton type="rect" animation="fade" />
+            </div>
+            <div v-else class="value">
+              <div class="column--apr-apy">
+                <div :class="isApr ? 'button--active' : 'button--not-active'" @click="isApr = true">
+                  <span> {{ $t('topMetric.apr') }}</span>
+                </div>
+                <div
+                  :class="!isApr ? 'button--active' : 'button--not-active'"
+                  @click="isApr = false"
+                >
+                  <span> {{ $t('topMetric.apy') }}</span>
                 </div>
               </div>
-              <div v-if="etaNextEra && !isLoading" class="box-pie-chart">
-                <pie-chart
-                  :percentage="progress"
-                  bold="3px"
-                  width="44px"
-                  color="#0085ff"
-                  font-size="11px"
-                />
+              <div>
+                <span>{{ percentage }}%</span>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <div class="card">
-        <p>
-          {{ $t('topMetric.totalDapps') }}
-        </p>
-        <div class="row--data">
-          <div v-if="!dappsCount" class="loading">
-            <q-skeleton type="rect" animation="fade" />
+        <div class="card">
+          <p>
+            {{ $t('topMetric.currentEra') }}
+          </p>
+          <div class="row--data">
+            <div v-if="!currentEra" class="loading">
+              <q-skeleton type="rect" animation="fade" />
+            </div>
+            <div v-else class="value">
+              <div class="row--era-info">
+                <div class="column--era-info">
+                  <div>{{ currentEra.toString() }}</div>
+                  <div v-if="etaNextEra" class="text--eta-next-era">
+                    {{ $t('topMetric.eraInfo', { eta: etaNextEra }) }}
+                  </div>
+                </div>
+                <div v-if="etaNextEra && !isLoading" class="box-pie-chart">
+                  <pie-chart
+                    :percentage="progress"
+                    bold="3px"
+                    width="44px"
+                    color="#0085ff"
+                    font-size="11px"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-          <div v-else class="value">{{ dappsCount.toLocaleString() }}</div>
+        </div>
+        <div class="card">
+          <p>
+            {{ $t('topMetric.totalDapps') }}
+          </p>
+          <div class="row--data">
+            <div v-if="!dappsCount" class="loading">
+              <q-skeleton type="rect" animation="fade" />
+            </div>
+            <div v-else class="value">{{ dappsCount.toLocaleString() }}</div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </template>
 <script lang="ts">
+import { formatNumber } from '@astar-network/astar-sdk-core';
 import { BN } from '@polkadot/util';
 import { $api } from 'src/boot/api';
+import PieChart from 'src/components/common/PieChart.vue';
 import { endpointKey } from 'src/config/chainEndpoints';
 import {
   AccountLedger,
@@ -107,20 +112,18 @@ import {
   useCurrentEra,
   useNetworkInfo,
 } from 'src/hooks';
-import { formatNumber } from '@astar-network/astar-sdk-core';
 import { useStore } from 'src/store';
 import { TvlModel } from 'src/v2/models';
 import { DappCombinedInfo, SmartContractState } from 'src/v2/models/DappsStaking';
 import { computed, defineComponent, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import PieChart from 'src/components/common/PieChart.vue';
 
 export default defineComponent({
   components: { PieChart },
   setup() {
     const store = useStore();
     const { stakerApr, stakerApy } = useAprFromApi();
-    const { currentAccount } = useAccount();
+    const { senderSs58Account } = useAccount();
     const dappsCount = computed<number>(
       () =>
         store.getters['dapps/getRegisteredDapps']().filter(
@@ -150,7 +153,9 @@ export default defineComponent({
 
     const checkIsCompoundingAccount = async (): Promise<void> => {
       try {
-        const ledger = await $api?.query.dappsStaking.ledger<AccountLedger>(currentAccount.value);
+        const ledger = await $api?.query.dappsStaking.ledger<AccountLedger>(
+          senderSs58Account.value
+        );
         const isStaker = ledger && !ledger.locked.eq(new BN(0));
         const isCompounding = ledger?.toJSON().rewardDestination === RewardDestination.StakeBalance;
         isApr.value = isStaker ? !isCompounding : true;
@@ -160,9 +165,9 @@ export default defineComponent({
     };
 
     watch(
-      [currentAccount],
+      [senderSs58Account],
       async () => {
-        if (!currentAccount.value) return;
+        if (!senderSs58Account.value) return;
         await checkIsCompoundingAccount();
       },
       { immediate: false }

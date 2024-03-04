@@ -1,4 +1,4 @@
-import { clickPolicyButton } from 'src/modules/playwright';
+import { clickDisclaimerButton } from 'src/modules/playwright';
 import { BrowserContext, Page, expect } from '@playwright/test';
 import { test } from './fixtures';
 import {
@@ -33,9 +33,9 @@ test.afterAll(async () => {
 
 test.beforeEach(async ({ page, context }: { page: Page; context: BrowserContext }) => {
   await page.goto('/astar/assets');
-  await clickPolicyButton(page);
-  const closeButton = page.getByText('Polkadot.js');
-  await closeButton.click();
+  await clickDisclaimerButton(page);
+  const walletTab = page.getByTestId('select-wallet-tab');
+  await walletTab.click();
 
   await closePolkadotWelcomePopup(context);
   await createAccount(page, ALICE_ACCOUNT_SEED, ALICE_ACCOUNT_NAME);
@@ -60,8 +60,7 @@ test.describe('account panel', () => {
     context: BrowserContext;
   }) => {
     // transfer test (from native to evm) :: need to testing
-    await page.locator('.icon--expand').first().click();
-    await page.locator('#asset-expand').getByRole('button', { name: 'Transfer' }).click();
+    page.getByTestId('transfer-link-button').click();
     const faucetAmount = BigInt(200);
     await page.getByPlaceholder('Destination Address').fill(ALICE_EVM_ADDRESS);
     await page.getByPlaceholder('0.0').fill(faucetAmount.toString());
@@ -81,8 +80,8 @@ test.describe('account panel', () => {
     await page.goto('/custom-node/assets/transfer?token=astr&mode=local');
     await page.locator('.btn--connect').click();
     await page.getByText('MetaMask').click();
-    await connectWithEVM(page, context);
-    await changeNetworkOnEVM(page, context);
+    const metamaskWindow = await connectWithEVM(page, context);
+    await changeNetworkOnEVM(page, context, metamaskWindow);
     await page.waitForSelector('.modal-close', { state: 'hidden' });
     await expect(page.getByText('Select a Wallet')).toBeHidden();
 

@@ -65,13 +65,15 @@
                 <span class="text--tooltip">{{ $t('copy') }}</span>
               </q-tooltip>
             </button>
-            <a :href="blockscout + dapp.dapp.address" target="_blank" rel="noopener noreferrer">
+            <a :href="explorerUrl" target="_blank" rel="noopener noreferrer">
               <button class="box--share btn--primary">
                 <div class="icon--primary">
                   <astar-icon-external-link />
                 </div>
                 <q-tooltip>
-                  <span class="text--tooltip">{{ $t('blockscout') }}</span>
+                  <span class="text--tooltip">
+                    {{ $t(dapp.dapp.address.startsWith('0x') ? 'blockscout' : 'subscan') }}
+                  </span>
                 </q-tooltip>
               </button>
             </a>
@@ -201,7 +203,7 @@ import copy from 'copy-to-clipboard';
 import { providerEndpoints } from 'src/config/chainEndpoints';
 import { useNetworkInfo } from 'src/hooks';
 import { sanitizeData } from 'src/hooks/helper/markdown';
-import { getShortenAddress } from '@astar-network/astar-sdk-core';
+import { getShortenAddress, hasProperty } from '@astar-network/astar-sdk-core';
 import { useStore } from 'src/store';
 import { computed, defineComponent } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -223,9 +225,15 @@ export default defineComponent({
     const { currentNetworkIdx } = useNetworkInfo();
     const store = useStore();
     const { t } = useI18n();
-    const blockscout = computed<string>(
-      () => `${providerEndpoints[currentNetworkIdx.value].blockscout}/address/`
-    );
+
+    const explorerUrl = computed<string>(() => {
+      const address = props.dapp.dapp.address;
+      const blockscout = `${providerEndpoints[currentNetworkIdx.value].blockscout}/address/`;
+      const subscan = `${providerEndpoints[currentNetworkIdx.value].subscan}/account/`;
+      const explorer = address.startsWith('0x') ? blockscout : subscan;
+      return explorer + address;
+    });
+
     const copyAddress = (address: string): void => {
       copy(address);
       store.dispatch('general/showAlertMsg', {
@@ -235,7 +243,7 @@ export default defineComponent({
     };
 
     const communities = computed<Community[] | null>(() => {
-      if (props.dapp.dapp && props.dapp.dapp.hasOwnProperty('communities')) {
+      if (props.dapp.dapp && hasProperty(props.dapp.dapp, 'communities')) {
         return props.dapp.dapp.communities as Community[];
       } else {
         return null;
@@ -243,7 +251,7 @@ export default defineComponent({
     });
 
     const virtualMachineTags = computed<string[]>(() => {
-      if (props.dapp.dapp && props.dapp.dapp.hasOwnProperty('contractType')) {
+      if (props.dapp.dapp && hasProperty(props.dapp.dapp, 'contractType')) {
         if (props.dapp.dapp.contractType === 'wasm+evm') {
           return ['EVM', 'WASM'];
         } else {
@@ -263,7 +271,7 @@ export default defineComponent({
       getShortenAddress,
       copyAddress,
       goLink,
-      blockscout,
+      explorerUrl,
       communities,
       virtualMachineTags,
       CommunityType,

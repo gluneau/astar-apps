@@ -42,15 +42,18 @@ export const expect = test.expect;
 
 export const getWindow = async (title: string, context: BrowserContext): Promise<Page> => {
   return new Promise((resolve, reject) => {
-    context.on('page', async (target) => {
+    // Fixme: doesn't work with `changeNetworkOnEVM`
+    const timer = setTimeout(() => {
+      reject(`${title} window not found.`);
+    }, 25000);
+
+    context.addListener('page', async (target) => {
       const pageTitle = await target.title();
-      console.info('pageTitle', pageTitle);
+      context.removeListener('page', () => {});
+      clearTimeout(timer);
       if (pageTitle === title) {
         resolve(target);
       }
     });
-    setTimeout(() => {
-      reject(`${title} window not found.`);
-    }, 25000);
   });
 };

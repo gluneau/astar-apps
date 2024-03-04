@@ -24,15 +24,14 @@
 }
 
 .sidebar {
+  position: relative;
+  z-index: 100;
   width: 224px;
   padding-top: 24px;
-  background: linear-gradient(140deg, #070c25 50%, #253585 80%, #3e2371 90%);
+  background: #081029;
   display: flex;
   flex-direction: column;
-}
-
-.sidebar--height-decentralized {
-  height: calc(100% - 40px);
+  border-right: solid 1px $navy-3;
 }
 
 .menu {
@@ -108,16 +107,21 @@
   margin-top: -184px;
 }
 
+.menu__bridge {
+  margin-top: -138px;
+}
+
 .dummy-row {
   height: 46px;
+}
+
+.link--disabled {
+  text-align: left;
 }
 
 .body--dark {
   .menu__indicator {
     background: $navy-3;
-  }
-  .sidebar {
-    background: linear-gradient(140deg, #070c25 50%, #253585 80%, #3e2371 90%);
   }
   .link {
     color: $gray-1;

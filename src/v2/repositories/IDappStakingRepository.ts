@@ -12,6 +12,7 @@ import { EditDappItem } from 'src/store/dapp-staking/state';
 import { u32 } from '@polkadot/types';
 import { GeneralStakerInfo } from '@astar-network/astar-sdk-core';
 import { StakeInfo } from 'src/store/dapp-staking/actions';
+import { ParamClaimAll } from '../services';
 
 export interface DappAggregatedMetrics {
   name: string;
@@ -91,8 +92,13 @@ export interface IDappStakingRepository {
    * Gets dapp data from Firebase.
    * @param contractAddress Dapp contract address.
    * @param network Name of the network where dapp has been deployed.
+   * @param forEdit Flag to indicate if dapp data should be fetched with encoded images.
    */
-  getDapp(contractAddress: string, network: string): Promise<EditDappItem | undefined>;
+  getDapp(
+    contractAddress: string,
+    network: string,
+    forEdit: boolean
+  ): Promise<EditDappItem | undefined>;
 
   /**
    * Gets dapps staking ledger for a given account.
@@ -124,6 +130,8 @@ export interface IDappStakingRepository {
   getSetRewardDestinationCall(
     rewardDestination: RewardDestination
   ): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>>;
+  getWithdrawCall(): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>>;
+  getClaimCall(param: ParamClaimAll): Promise<SubmittableExtrinsic<'promise', ISubmittableResult>>;
 
   getAggregatedMetrics(network: string): Promise<DappAggregatedMetrics[]>;
 }

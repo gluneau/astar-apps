@@ -9,7 +9,9 @@ import {
   ConnectionType,
   GeneralStateInterface as State,
   SubstrateAccount,
+  UnifiedAccount,
 } from './state';
+import { InflationConfiguration } from 'src/v2/models';
 
 export interface GeneralMutations<S = State> {
   setInitialized(state: S): void;
@@ -25,11 +27,12 @@ export interface GeneralMutations<S = State> {
   setCurrentNetworkStatus(state: S, networkStatus: ConnectionType): void;
   setCurrentNetworkIdx(state: S, networkIdx: number): void;
   setCurrentAddress(state: S, address: string): void;
-  setCurrentCustomEndpoint(state: S, endpoint: string): void;
   setHeaderName(state: S, name: string): void;
   setCurrentWallet(state: S, wallet: string): void;
   setGas(state: S, gas: GasTip): void;
   setCurrentBlock(state: S, blockNumber: number): void;
+  setUnifiedAccount(state: S, unifiedAccount: UnifiedAccount): void;
+  setActiveInflationConfiguration(state: S, inflationConfiguration: InflationConfiguration): void;
 }
 
 const mutation: MutationTree<State> & GeneralMutations = {
@@ -84,9 +87,6 @@ const mutation: MutationTree<State> & GeneralMutations = {
   setCurrentAddress(state, address) {
     state.currentAddress = address;
   },
-  setCurrentCustomEndpoint(state, endpoint) {
-    state.currentCustomEndpoint = endpoint;
-  },
   setTheme(state, theme) {
     if (theme == 'DARK') {
       Dark.set(true);
@@ -109,6 +109,12 @@ const mutation: MutationTree<State> & GeneralMutations = {
   },
   setCurrentBlock(state, blockNumber) {
     state.currentBlock = blockNumber;
+  },
+  setUnifiedAccount(state, unifiedAccount) {
+    state.unifiedAccount = unifiedAccount;
+  },
+  setActiveInflationConfiguration(state, inflationConfiguration) {
+    state.activeInflationConfiguration = inflationConfiguration;
   },
 };
 

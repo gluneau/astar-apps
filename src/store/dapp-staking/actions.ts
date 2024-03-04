@@ -12,15 +12,15 @@ import { BN } from '@polkadot/util';
 import { $api } from 'boot/api';
 import { ActionTree, Dispatch } from 'vuex';
 import { StateInterface } from '../index';
-import { sign } from './../../hooks/helper/wallet';
 import { SubstrateAccount } from './../general/state';
 import { DappStateInterface as State, NewDappItem, FileInfo } from './state';
-import { IDappStakingService } from 'src/v2/services';
+import { IAccountUnificationService, IDappStakingService } from 'src/v2/services';
 import { container } from 'src/v2/common';
 import { Symbols } from 'src/v2/symbols';
 import axios, { AxiosError } from 'axios';
 import type { Transaction } from 'src/hooks/helper/wallet';
-import { getDappAddressEnum, TOKEN_API_URL, DappItem } from '@astar-network/astar-sdk-core';
+import { TOKEN_API_URL, DappItem, isValidEvmAddress } from '@astar-network/astar-sdk-core';
+import { IDappStakingServiceV2V3 } from 'src/staking-v3';
 
 const showError = (dispatch: Dispatch, message: string): void => {
   dispatch(
@@ -83,18 +83,22 @@ export const hasExtrinsicFailedEvent = (
 const actions: ActionTree<State, StateInterface> = {
   async getDapps(
     { commit, dispatch },
-    { network, currentAccount }: { network: string; currentAccount: string }
+    { network, senderSs58Account }: { network: string; senderSs58Account: string }
   ) {
-    // commit('general/setLoading', true, { root: true });
+    const accountUnificationService = container.get<IAccountUnificationService>(
+      Symbols.AccountUnificationService
+    );
 
     try {
       // Fetch dapps
-      const dappsUrl = `${TOKEN_API_URL}/v1/${network.toLowerCase()}/dapps-staking/dapps`;
+      const dappsUrl = `${TOKEN_API_URL}/v1/${network.toLowerCase()}/dapps-staking/dappssimple`;
       const service = container.get<IDappStakingService>(Symbols.DappStakingService);
-
+      const address = isValidEvmAddress(senderSs58Account)
+        ? await accountUnificationService.getMappedNativeAddress(senderSs58Account)
+        : senderSs58Account;
       const [dapps, combinedInfo] = await Promise.all([
         axios.get<DappItem[]>(dappsUrl),
-        service.getCombinedInfo(currentAccount),
+        service.getCombinedInfo(address),
       ]);
 
       // Update combined info with dapp info
@@ -116,28 +120,6 @@ const actions: ActionTree<State, StateInterface> = {
   async registerDappApi({ commit, dispatch }, parameters: RegisterParameters): Promise<boolean> {
     if (parameters.api) {
       try {
-        if (!parameters.signature) {
-          // If no signature received, it means we are using the
-          // old dapp registration logic (to be removed after all networks are updated.)
-          const transaction = parameters.api.tx.dappsStaking.register(
-            getDappAddressEnum(parameters.dapp.address)
-          );
-
-          const signedTransaction = await sign({
-            transaction,
-            senderAddress: parameters.senderAddress,
-            substrateAccounts: parameters.substrateAccounts,
-            isCustomSignature: parameters.isCustomSignature,
-            dispatch,
-            tip: parameters.tip,
-            getCallFunc: parameters.getCallFunc,
-          });
-
-          if (signedTransaction) {
-            parameters.signature = signedTransaction.toJSON();
-          }
-        }
-
         const payload = {
           name: parameters.dapp.name,
           iconFile: getFileInfo(parameters.dapp.iconFileName, parameters.dapp.iconFile),
@@ -146,6 +128,7 @@ const actions: ActionTree<State, StateInterface> = {
           images: getImagesInfo(parameters.dapp),
           developers: parameters.dapp.developers,
           description: parameters.dapp.description,
+          shortDescription: parameters.dapp.shortDescription,
           communities: parameters.dapp.communities,
           contractType: parameters.dapp.contractType,
           mainCategory: parameters.dapp.mainCategory,
@@ -230,7 +213,7 @@ const actions: ActionTree<State, StateInterface> = {
 
   async getTvl({ commit, dispatch }) {
     try {
-      const dappService = container.get<IDappStakingService>(Symbols.DappStakingService);
+      const dappService = container.get<IDappStakingServiceV2V3>(Symbols.DappStakingServiceV2V3);
       const tvl = await dappService.getTvl();
       commit('setTvl', tvl);
 

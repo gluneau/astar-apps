@@ -41,10 +41,10 @@
         </div>
         <astar-button
           v-if="index === hoverIndex || width < widthCardLineUp"
-          :disabled="isH160"
           class="button--stake"
           :width="274"
           :height="24"
+          :disabled="isZkEvm || decommissionStarted"
           @click="goStakePageLink(t.dapp?.address)"
         >
           {{ $t('dappStaking.stakeNow') }}
@@ -56,12 +56,11 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType, ref, computed } from 'vue';
-import { useBreakpoints, useNetworkInfo } from 'src/hooks';
+import { defineComponent, PropType, ref } from 'vue';
+import { useBreakpoints, useNetworkInfo, useDecommission } from 'src/hooks';
 import { DappCombinedInfo } from 'src/v2/models/DappsStaking';
 import { networkParam, Path } from 'src/router/routes';
 import { useRouter } from 'vue-router';
-import { useStore } from 'src/store';
 import TokenBalance from 'src/components/common/TokenBalance.vue';
 
 export default defineComponent({
@@ -79,12 +78,11 @@ export default defineComponent({
   setup() {
     const widthCardLineUp = 900;
     const router = useRouter();
-    const store = useStore();
     const { width, screenSize } = useBreakpoints();
     const hoverIndex = ref<number>(-1);
     const isToStakePage = ref<boolean>(false);
-    const { nativeTokenSymbol } = useNetworkInfo();
-    const isH160 = computed<boolean>(() => store.getters['general/isH160Formatted']);
+    const { nativeTokenSymbol, isZkEvm } = useNetworkInfo();
+    const { decommissionStarted } = useDecommission();
 
     const goStakePageLink = (address: string | undefined): void => {
       isToStakePage.value = true;
@@ -108,7 +106,8 @@ export default defineComponent({
       goDappPageLink,
       nativeTokenSymbol,
       widthCardLineUp,
-      isH160,
+      isZkEvm,
+      decommissionStarted,
     };
   },
 });
@@ -158,8 +157,7 @@ export default defineComponent({
     align-items: center;
   }
   .wrapper--img {
-    background: #fff;
-    box-shadow: 0px 0px 10px 2px rgba(0, 0, 0, 0.05);
+    flex-shrink: 0;
     border-radius: 16px;
     width: 80px;
     height: 80px;
@@ -185,7 +183,7 @@ export default defineComponent({
     }
 
     .badge--tag {
-      width: 54px;
+      width: 64px;
       height: 18px;
       padding: 2px 8px;
       background: $navy-3;
@@ -198,6 +196,8 @@ export default defineComponent({
       color: #fff;
       margin-top: 16px;
       margin-bottom: 16px;
+      text-overflow: ellipsis;
+      overflow: hidden;
     }
 
     .divider {
@@ -244,10 +244,6 @@ export default defineComponent({
 
 .body--dark {
   .card {
-    .wrapper--img {
-      background: transparent;
-    }
-
     .panel--right {
       .txt--title {
         color: $gray-1;
@@ -265,7 +261,10 @@ export default defineComponent({
     }
     @mixin hover {
       background: rgba(247, 247, 248, 0.03);
-      box-shadow: 0px 0px 24px 5px rgba(0, 0, 0, 0.15);
+      box-shadow: 0px 0px 6px 3px rgba(0, 0, 0, 0.1);
+      @media (min-width: $sm) {
+        box-shadow: 0px 0px 24px 5px rgba(0, 0, 0, 0.15);
+      }
     }
     &:hover {
       @include hover;

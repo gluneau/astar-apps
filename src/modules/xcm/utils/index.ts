@@ -9,7 +9,7 @@ import {
   updateAccountHistories,
 } from 'src/config/localStorage';
 import { pathEvm } from 'src/hooks';
-import { getTimestamp, capitalize } from '@astar-network/astar-sdk-core';
+import { getTimestamp, capitalize, hasProperty } from '@astar-network/astar-sdk-core';
 import { astarNetworks } from 'src/hooks/xcm/useTransferRouter';
 import { SystemAccount, TxHistory } from 'src/modules/account';
 import { HistoryTxType } from 'src/modules/account/index';
@@ -54,7 +54,7 @@ export const fetchXcmBalance = async ({
     const isAstarNativeToken = checkIsAstarNativeToken(token.mappedERC20Addr);
     if (isAstarNativeToken) {
       const accountInfo = await api.query.system.account<SystemAccount>(userAddress);
-      bal = accountInfo.data.free.sub(accountInfo.data.miscFrozen).toString();
+      bal = accountInfo.data.free.sub(accountInfo.data.frozen).toString();
     } else {
       const result = await api.query.assets.account<Account>(String(token.id), userAddress);
       const data = result.toJSON();
@@ -245,24 +245,26 @@ export const castXcmEndpoint = (endpoint: string): string => {
     return urlObject.port;
   };
 
-  const selectedCustomEndpoint = String(localStorage.getItem(LOCAL_STORAGE.CUSTOM_ENDPOINT));
   const selectedEndpointStored = String(localStorage.getItem(LOCAL_STORAGE.SELECTED_ENDPOINT));
   const selectedEndpoint = JSON.parse(selectedEndpointStored);
   const isCustomEndpoint =
     selectedEndpoint && Object.keys(selectedEndpoint)[0] === String(endpointKey.CUSTOM);
 
-  const portSelectedCustomEndpoint = extractPort(selectedCustomEndpoint);
-  const isSelectedChopsticksEndpoint =
-    portSelectedCustomEndpoint === extractPort(xcmChainObj[Chain.ASTAR].chopsticksEndpoint!) ||
-    portSelectedCustomEndpoint === extractPort(xcmChainObj[Chain.SHIDEN].chopsticksEndpoint!);
+  if (isCustomEndpoint) {
+    const selectedCustomEndpoint = Object.values(selectedEndpoint)[0] as string;
+    const portSelectedCustomEndpoint = extractPort(selectedCustomEndpoint);
+    const isSelectedChopsticksEndpoint =
+      portSelectedCustomEndpoint === extractPort(xcmChainObj[Chain.ASTAR].chopsticksEndpoint!) ||
+      portSelectedCustomEndpoint === extractPort(xcmChainObj[Chain.SHIDEN].chopsticksEndpoint!);
 
-  if (isCustomEndpoint && isSelectedChopsticksEndpoint) {
-    const chains = Object.values(xcmChainObj);
-    const chain = chains.find((it) => it.endpoint === endpoint);
-    return chain && chain.hasOwnProperty('chopsticksEndpoint')
-      ? String(chain.chopsticksEndpoint)
-      : endpoint;
-  } else {
-    return endpoint;
+    if (isSelectedChopsticksEndpoint) {
+      const chains = Object.values(xcmChainObj);
+      const chain = chains.find((it) => it.endpoints.find((that) => that === endpoint));
+      return chain && hasProperty(chain, 'chopsticksEndpoint')
+        ? String(chain.chopsticksEndpoint)
+        : endpoint;
+    }
   }
+
+  return endpoint;
 };

@@ -1,19 +1,18 @@
-import { DappCombinedInfo } from 'src/v2/models/DappsStaking';
 import { ethers } from 'ethers';
 import { useAccount, useBalance, useNetworkInfo } from 'src/hooks';
 import { StakingData } from 'src/modules/dapp-staking/index';
 import { getTokenImage } from 'src/modules/token';
 import { useStore } from 'src/store';
-import { computed, ref, watchEffect } from 'vue';
+import { DappCombinedInfo } from 'src/v2/models/DappsStaking';
+import { computed, ref, watch } from 'vue';
 
 export function useStakingList() {
-  const { currentAccount } = useAccount();
-  const { accountData } = useBalance(currentAccount);
+  const { senderSs58Account } = useAccount();
+  const { accountData } = useBalance(senderSs58Account);
   const { nativeTokenSymbol } = useNetworkInfo();
   const store = useStore();
   const isLoading = computed(() => store.getters['general/isLoading']);
   const dapps = computed<DappCombinedInfo[]>(() => store.getters['dapps/getAllDapps']);
-  const isH160 = computed(() => store.getters['general/isH160Formatted']);
   const nativeTokenImg = computed<string>(() =>
     getTokenImage({ isNativeToken: true, symbol: nativeTokenSymbol.value })
   );
@@ -27,11 +26,11 @@ export function useStakingList() {
     },
   ]);
 
-  const setStakingList = (): void => {
+  const setStakingList = async (): Promise<void> => {
     const dappsRef = dapps.value;
     const accountDataRef = accountData.value;
-    const currentAccountRef = currentAccount.value;
-    if (!accountDataRef || !currentAccountRef || isH160.value) return;
+    const senderSs58AccountRef = senderSs58Account.value;
+    if (!accountDataRef || !senderSs58AccountRef) return;
     try {
       const data = dappsRef.map((it) => {
         const accountStakingAmount = it.stakerInfo.accountStakingAmount;
@@ -47,10 +46,11 @@ export function useStakingList() {
         }
       });
 
+      const balance = accountDataRef.getUsableFeeBalance().toString();
       data.unshift({
-        address: currentAccountRef,
+        address: senderSs58AccountRef,
         name: 'Transferable Balance',
-        balance: accountDataRef.getUsableFeeBalance().toString(),
+        balance,
         iconUrl: nativeTokenImg.value,
       });
 
@@ -60,11 +60,11 @@ export function useStakingList() {
     }
   };
 
-  watchEffect(() => {
-    if (isLoading.value || !dapps.value) {
+  watch([isLoading, senderSs58Account, accountData], async () => {
+    if (isLoading.value || !dapps.value || !senderSs58Account.value) {
       return;
     }
-    setStakingList();
+    await setStakingList();
   });
 
   return {

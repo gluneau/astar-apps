@@ -8,7 +8,7 @@ import { $api, $web3 } from 'boot/api';
 import { SystemAccount } from 'src/modules/account';
 import { useStore } from 'src/store';
 import { computed, onUnmounted, ref, Ref, watch } from 'vue';
-import { getVested } from '@astar-network/astar-sdk-core';
+import { getVested, isValidEvmAddress } from '@astar-network/astar-sdk-core';
 
 function useCall(addressRef: Ref<string>) {
   const balanceRef = ref(new BN(0));
@@ -16,7 +16,6 @@ function useCall(addressRef: Ref<string>) {
   const remainingVests = ref(new BN(0));
   const accountDataRef = ref<AccountData>();
   const store = useStore();
-  const isH160Formatted = computed(() => store.getters['general/isH160Formatted']);
   const isLoadingAccount = ref<boolean>(true);
 
   const isLoading = computed<boolean>(() => store.getters['general/isLoading']);
@@ -89,8 +88,8 @@ function useCall(addressRef: Ref<string>) {
     accountDataRef.value = new AccountData(
       accountInfo.data.free,
       accountInfo.data.reserved,
-      accountInfo.data.miscFrozen ?? accountInfo.data.frozen,
-      accountInfo.data.feeFrozen ?? accountInfo.data.flags,
+      accountInfo.data.frozen,
+      accountInfo.data.flags,
       vestedRef.value,
       extendedVesting,
       vestedClaimable,
@@ -98,13 +97,13 @@ function useCall(addressRef: Ref<string>) {
       locks
     );
 
-    balanceRef.value = accountInfo.data.free;
+    balanceRef.value = accountInfo.data.free.add(accountInfo.data.reserved);
   };
 
   const updateAccountBalance = () => {
     const address = addressRef.value;
     if (address !== ETHEREUM_EXTENSION) {
-      if (isH160Formatted.value) {
+      if (isValidEvmAddress(address)) {
         updateAccountH160(address);
       } else {
         updateAccount(address);
@@ -182,8 +181,8 @@ export class AccountData {
   constructor(
     free: BN,
     reserved: BN,
-    miscFrozen: BN,
-    feeFrozen: BN,
+    frozen: BN,
+    flags: BN,
     vested: BN,
     vesting: ExtendedVestingInfo[],
     vestedClaimable: BN,
@@ -192,8 +191,8 @@ export class AccountData {
   ) {
     this.free = free;
     this.reserved = reserved;
-    this.miscFrozen = miscFrozen;
-    this.feeFrozen = feeFrozen;
+    this.frozen = frozen;
+    this.flags = flags;
     this.vested = vested;
     this.vesting = vesting;
     this.vestedClaimable = vestedClaimable;
@@ -202,17 +201,17 @@ export class AccountData {
   }
 
   public getUsableTransactionBalance(): BN {
-    return this.free.sub(this.miscFrozen);
+    return this.free.sub(this.frozen);
   }
 
   public getUsableFeeBalance(): BN {
-    return this.free.sub(this.miscFrozen);
+    return this.free.sub(this.frozen);
   }
 
   public free: BN;
   public reserved: BN;
-  public miscFrozen: BN;
-  public feeFrozen: BN;
+  public frozen: BN;
+  public flags: BN;
   public vested: BN;
   public vesting: ExtendedVestingInfo[];
   public vestedClaimable: BN;
@@ -225,8 +224,8 @@ export class AccountDataH160 {
   constructor(
     public free: BN,
     public reserved: BN,
-    public miscFrozen: BN,
-    public feeFrozen: BN,
+    public frozen: BN,
+    public flags: BN,
     public vested: BN,
     public vesting: ExtendedVestingInfo[],
     public vestedClaimable: BN,
@@ -235,11 +234,11 @@ export class AccountDataH160 {
   ) {}
 
   public getUsableTransactionBalance(): BN {
-    return this.free.sub(this.miscFrozen);
+    return this.free.sub(this.frozen);
   }
 
   public getUsableFeeBalance(): BN {
-    return this.free.sub(this.feeFrozen);
+    return this.free.sub(this.flags);
   }
 }
 

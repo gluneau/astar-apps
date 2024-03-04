@@ -5,6 +5,7 @@ export {
   faqSs58Transfer,
   faqSs58XcmBridge,
   faqSs58XvmTransfer,
+  faqZkEthereumBridge,
 } from 'src/modules/information/faq';
 
 export { hotTopics } from 'src/modules/information/hot-topics';
@@ -26,7 +27,8 @@ export type RecentHistoryTxType =
   | 'Transfer'
   | 'BondAndStake'
   | 'NominationTransfer'
-  | 'UnbondAndUnstake';
+  | 'UnbondAndUnstake'
+  | 'Reward';
 
 export interface RecentHistory {
   timestamp: string;

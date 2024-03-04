@@ -10,7 +10,7 @@ import { defineComponent } from 'vue';
 import { useMeta } from 'quasar';
 import Dashboard from 'src/components/dashboard/Dashboard.vue';
 import { usePageReady } from 'src/hooks';
-import { generateMeta, meta } from 'src/config/metadata';
+import { generateMeta } from 'src/config/metadata';
 import { Path } from 'src/router';
 
 export default defineComponent({
@@ -29,8 +29,13 @@ export default defineComponent({
 
 .wrapper--dashboard {
   padding: 0 16px;
+  @media (min-width: $sm) {
+    padding-top: 16px;
+  }
   @media (min-width: $lg) {
-    margin-top: 70px;
+    padding-left: 40px;
+    padding-right: 40px;
+    padding-top: 36px;
   }
 }
 </style>
